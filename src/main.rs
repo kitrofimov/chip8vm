@@ -4,6 +4,9 @@ use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::keyboard::Scancode;
 
 const DISPLAY_WIDTH: usize = 64;
 const DISPLAY_HEIGHT: usize = 32;
@@ -23,10 +26,11 @@ struct VM<'a> {
     display: [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     canvas: Canvas<Window>,
     texture: Texture<'a>,
+    sdl_context: sdl2::Sdl,
 }
 
 impl<'a> VM<'a> {
-    fn new(canvas: Canvas<Window>, texture: Texture) -> VM {
+    fn new(sdl_context: sdl2::Sdl, canvas: Canvas<Window>, texture: Texture) -> VM {
         VM {
             running: true,
             ram: [0; 4096],
@@ -40,6 +44,7 @@ impl<'a> VM<'a> {
             display: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             canvas,
             texture,
+            sdl_context,
         }
     }
 
@@ -103,14 +108,68 @@ impl<'a> VM<'a> {
         self.canvas.present();
     }
 
-    fn is_key_pressed(&self, key: u8) -> bool {
-        // TODO: Implement key press detection using SDL2
-        false
+    fn scancode_to_chip8_key(scancode: Scancode) -> Option<u8> {
+        match scancode {
+            Scancode::Num1 => Some(0x1),
+            Scancode::Num2 => Some(0x2),
+            Scancode::Num3 => Some(0x3),
+            Scancode::Num4 => Some(0xC),
+            Scancode::Q => Some(0x4),
+            Scancode::W => Some(0x5),
+            Scancode::E => Some(0x6),
+            Scancode::R => Some(0xD),
+            Scancode::A => Some(0x7),
+            Scancode::S => Some(0x8),
+            Scancode::D => Some(0x9),
+            Scancode::F => Some(0xE),
+            Scancode::Z => Some(0xA),
+            Scancode::X => Some(0x0),
+            Scancode::C => Some(0xB),
+            Scancode::V => Some(0xF),
+            _ => None,
+        }
+    }
+
+    fn chip8_key_to_scancode(chip8_key: u8) -> Scancode {
+        match chip8_key {
+            0x1 => Scancode::Num1,
+            0x2 => Scancode::Num2,
+            0x3 => Scancode::Num3,
+            0xC => Scancode::Num4,
+            0x4 => Scancode::Q,
+            0x5 => Scancode::W,
+            0x6 => Scancode::E,
+            0xD => Scancode::R,
+            0x7 => Scancode::A,
+            0x8 => Scancode::S,
+            0x9 => Scancode::D,
+            0xE => Scancode::F,
+            0xA => Scancode::Z,
+            0x0 => Scancode::X,
+            0xB => Scancode::C,
+            0xF => Scancode::V,
+            _ => panic!("Invalid CHIP-8 key: {}", chip8_key),
+        }
+    }
+
+    fn is_key_pressed(&self, chip8_key: u8) -> bool {
+        let event_pump = self.sdl_context.event_pump().unwrap();
+        let keyboard_state = event_pump.keyboard_state();
+        keyboard_state.is_scancode_pressed(VM::chip8_key_to_scancode(chip8_key))
     }
 
     fn wait_for_key_press(&mut self) -> u8 {
-        // TODO: Implement wait for key press using SDL2
-        0
+        let mut event_pump = self.sdl_context.event_pump().unwrap();
+
+        loop {
+            for event in event_pump.poll_iter() {
+                if let Event::KeyDown { scancode: Some(scancode), .. } = event {
+                    if let Some(chip8_key) = VM::scancode_to_chip8_key(scancode) {
+                        return chip8_key;
+                    }
+                }
+            }
+        }
     }
 
     fn execute(&mut self, opcode: u16) {
@@ -124,7 +183,7 @@ impl<'a> VM<'a> {
             0x0000 => match opcode {
                 0x00E0 => self.clear_screen(),
                 0x00EE => self.pc = self.pop() as usize,
-                _ => {  // 0nnn
+                _ => {
                     // TODO: Implement "jump to native assembler subroutine"
                 }
             },
@@ -267,7 +326,7 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB332, DISPLAY_WIDTH as u32, DISPLAY_HEIGHT as u32)
         .expect("Failed to create texture");
 
-    let mut vm = VM::new(canvas, texture);
+    let mut vm = VM::new(sdl_context, canvas, texture);
     vm.ram[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
 
     println!("Loaded {} bytes into RAM (address 0x200)", buffer.len());
