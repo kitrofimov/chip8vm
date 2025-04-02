@@ -30,7 +30,7 @@ struct VM<'a> {
 
 impl<'a> VM<'a> {
     fn new(sdl_context: sdl2::Sdl, canvas: Canvas<Window>, texture: Texture) -> VM {
-        VM {
+        let mut vm = VM {
             running: true,
             ram: [0; 4096],
             pc: 0x200,
@@ -44,7 +44,33 @@ impl<'a> VM<'a> {
             canvas,
             texture,
             sdl_context,
-        }
+        };
+
+        let font_data: [u8; 80] = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+        ];
+        vm.ram[0x000..0x050].copy_from_slice(&font_data);
+
+        vm
+    }
+
+    fn load_program(&mut self, program: &[u8]) {
+        self.ram[0x200..0x200 + program.len()].copy_from_slice(program);
     }
 
     fn mainloop(&mut self) {
@@ -181,9 +207,7 @@ impl<'a> VM<'a> {
             0x0000 => match opcode {
                 0x00E0 => self.clear_screen(), // 00E0
                 0x00EE => self.pc = self.pop() as usize, // 00EE
-                _ => { // 0nnn
-                    // TODO: Implement "jump to native assembler subroutine"
-                }
+                _ => panic!("0x0NNN (execute native subroutine) called!") // 0nnn
             },
             0x1000 => self.pc = nnn as usize, // 1nnn
             0x2000 => { // 2nnn
@@ -267,9 +291,7 @@ impl<'a> VM<'a> {
                 0x15 => self.delay_timer = self.reg[x], // Fx15
                 0x18 => self.sound_timer = self.reg[x], // Fx18
                 0x1E => self.reg_i = self.reg_i.wrapping_add(self.reg[x] as u16), // Fx1E
-                0x29 => { // Fx29
-                    // TODO: Implement set I to sprite address
-                }
+                0x29 => self.reg_i = (self.reg[x] as u16) * 5, // Fx29
                 0x33 => { // Fx33
                     self.ram[self.reg_i as usize] = self.reg[x] / 100;
                     self.ram[self.reg_i as usize + 1] = (self.reg[x] / 10) % 10;
