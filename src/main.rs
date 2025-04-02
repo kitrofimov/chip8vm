@@ -121,14 +121,15 @@ impl<'a> VM<'a> {
     }
 
     fn render_display(&mut self) {
+        self.canvas.set_draw_color(Color::BLACK);
+        self.canvas.clear();
+
+        let dest_rect = Rect::new(0, 0, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
         self.texture
             .update(None, self.display.as_flattened(), DISPLAY_WIDTH)
             .unwrap();
-
-        self.canvas.set_draw_color(Color::BLACK);
-        self.canvas.clear();
         self.canvas
-            .copy(&self.texture, None, Some(Rect::new(0, 0, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)))
+            .copy(&self.texture, None, Some(dest_rect))
             .unwrap();
         self.canvas.present();
     }
@@ -328,7 +329,9 @@ fn main() {
     file.read_to_end(&mut buffer).expect("Failed to read ROM file");
 
     let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
-    let video_subsystem = sdl_context.video().expect("Failed to initialize video subsystem");
+    let video_subsystem = sdl_context
+        .video()
+        .expect("Failed to initialize video subsystem");
     let window = video_subsystem
         .window("CHIP-8 Emulator", WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)
         .position_centered()
@@ -343,11 +346,15 @@ fn main() {
 
     let texture_creator = canvas.texture_creator();
     let texture = texture_creator
-        .create_texture_target(PixelFormatEnum::RGB332, DISPLAY_WIDTH as u32, DISPLAY_HEIGHT as u32)
+        .create_texture_target(
+            PixelFormatEnum::RGB332,
+            DISPLAY_WIDTH as u32,
+            DISPLAY_HEIGHT as u32
+        )
         .expect("Failed to create texture");
 
     let mut vm = VM::new(sdl_context, canvas, texture);
-    vm.ram[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
+    vm.load_program(&buffer);
 
     println!("Loaded {} bytes into RAM (address 0x200)", buffer.len());
     println!("Starting VM...");
