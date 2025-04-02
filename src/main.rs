@@ -159,7 +159,6 @@ impl<'a> VM<'a> {
 
     fn wait_for_key_press(&mut self) -> u8 {
         let mut event_pump = self.sdl_context.event_pump().unwrap();
-
         loop {
             for event in event_pump.poll_iter() {
                 if let Event::KeyDown { scancode: Some(scancode), .. } = event {
@@ -180,82 +179,82 @@ impl<'a> VM<'a> {
 
         match opcode & 0xF000 {
             0x0000 => match opcode {
-                0x00E0 => self.clear_screen(),
-                0x00EE => self.pc = self.pop() as usize,
-                _ => {
+                0x00E0 => self.clear_screen(), // 00E0
+                0x00EE => self.pc = self.pop() as usize, // 00EE
+                _ => { // 0nnn
                     // TODO: Implement "jump to native assembler subroutine"
                 }
             },
-            0x1000 => self.pc = nnn as usize,
-            0x2000 => {
+            0x1000 => self.pc = nnn as usize, // 1nnn
+            0x2000 => { // 2nnn
                 self.push(self.pc as u16);
                 self.pc = nnn as usize;
             }
-            0x3000 => {
+            0x3000 => { // 3xnn
                 if self.reg[x] == nn {
                     self.pc += 2;
                 }
             }
             0x4000 => {
-                if self.reg[x] != nn {
+                if self.reg[x] != nn { // 4xnn
                     self.pc += 2;
                 }
             }
             0x5000 => {
-                if self.reg[x] == self.reg[y] {
+                if self.reg[x] == self.reg[y] { // 5xy0
                     self.pc += 2;
                 }
             }
-            0x6000 => self.reg[x] = nn,
-            0x7000 => self.reg[x] = self.reg[x].wrapping_add(nn),
+            0x6000 => self.reg[x] = nn, // 6xnn
+            0x7000 => self.reg[x] = self.reg[x].wrapping_add(nn), // 7xnn
             0x8000 => match opcode & 0x000F {
-                0x0 => self.reg[x] = self.reg[y],
-                0x1 => self.reg[x] |= self.reg[y],
-                0x2 => self.reg[x] &= self.reg[y],
-                0x3 => self.reg[x] ^= self.reg[y],
-                0x4 => {
+                0x0 => self.reg[x] = self.reg[y], // 8xy0
+                0x1 => self.reg[x] |= self.reg[y], // 8xy1
+                0x2 => self.reg[x] &= self.reg[y], // 8xy2
+                0x3 => self.reg[x] ^= self.reg[y], // 8xy3
+                0x4 => { // 8xy4
                     let (result, carry) = self.reg[x].overflowing_add(self.reg[y]);
                     self.reg[x] = result;
                     self.reg[0xF] = if carry { 1 } else { 0 };
                 }
-                0x5 => {
+                0x5 => { // 8xy5
                     let (result, borrow) = self.reg[x].overflowing_sub(self.reg[y]);
                     self.reg[x] = result;
                     self.reg[0xF] = if borrow { 0 } else { 1 };
                 }
-                0x6 => {
+                0x6 => { // 8xy6
                     self.reg[x] = self.reg[y];
                     self.reg[0xF] = self.reg[x] & 0x1;
                     self.reg[x] >>= 1;
                 }
-                0x7 => {
+                0x7 => { // 8xy7
                     let (result, borrow) = self.reg[y].overflowing_sub(self.reg[x]);
                     self.reg[x] = result;
                     self.reg[0xF] = if borrow { 0 } else { 1 };
                 }
-                0xE => {
+                0xE => { // 8xyE
                     self.reg[x] = self.reg[y];
                     self.reg[0xF] = (self.reg[x] & 0x80) >> 7;
                     self.reg[x] <<= 1;
                 }
                 _ => {}
             },
-            0x9000 => {
+            0x9000 => { // 9xy0
                 if self.reg[x] != self.reg[y] {
                     self.pc += 2;
                 }
             }
-            0xA000 => self.reg_i = nnn,
-            0xB000 => self.pc = (nnn + self.reg[0] as u16) as usize,
-            0xC000 => self.reg[x] = rand::random::<u8>() & nn,
-            0xD000 => self.draw_sprite(self.reg[x], self.reg[y], n),
+            0xA000 => self.reg_i = nnn, // Annn
+            0xB000 => self.pc = (nnn + self.reg[0] as u16) as usize, // Bnnn
+            0xC000 => self.reg[x] = rand::random::<u8>() & nn, // Cxnn
+            0xD000 => self.draw_sprite(self.reg[x], self.reg[y], n), // Dxyn
             0xE000 => match opcode & 0x00FF {
-                0x9E => {
+                0x9E => { // Ex9E
                     if self.is_key_pressed(self.reg[x]) {
                         self.pc += 2;
                     }
                 }
-                0xA1 => {
+                0xA1 => { // ExA1
                     if !self.is_key_pressed(self.reg[x]) {
                         self.pc += 2;
                     }
@@ -263,26 +262,26 @@ impl<'a> VM<'a> {
                 _ => {}
             },
             0xF000 => match opcode & 0x00FF {
-                0x07 => self.reg[x] = self.delay_timer,
-                0x0A => self.reg[x] = self.wait_for_key_press(),
-                0x15 => self.delay_timer = self.reg[x],
-                0x18 => self.sound_timer = self.reg[x],
-                0x1E => self.reg_i = self.reg_i.wrapping_add(self.reg[x] as u16),
-                0x29 => {
+                0x07 => self.reg[x] = self.delay_timer, // Fx07
+                0x0A => self.reg[x] = self.wait_for_key_press(), // Fx0A
+                0x15 => self.delay_timer = self.reg[x], // Fx15
+                0x18 => self.sound_timer = self.reg[x], // Fx18
+                0x1E => self.reg_i = self.reg_i.wrapping_add(self.reg[x] as u16), // Fx1E
+                0x29 => { // Fx29
                     // TODO: Implement set I to sprite address
                 }
-                0x33 => {
+                0x33 => { // Fx33
                     self.ram[self.reg_i as usize] = self.reg[x] / 100;
                     self.ram[self.reg_i as usize + 1] = (self.reg[x] / 10) % 10;
                     self.ram[self.reg_i as usize + 2] = self.reg[x] % 10;
                 }
-                0x55 => {
+                0x55 => { // Fx55
                     for i in 0..=x {
                         self.ram[self.reg_i as usize] = self.reg[i];
                         self.reg_i = self.reg_i.wrapping_add(1);
                     }
                 }
-                0x65 => {
+                0x65 => { // Fx65
                     for i in 0..=x {
                         self.reg[i] = self.ram[self.reg_i as usize];
                         self.reg_i = self.reg_i.wrapping_add(1);
