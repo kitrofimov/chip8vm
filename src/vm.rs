@@ -7,8 +7,6 @@ use sdl2::keyboard::Scancode;
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
-pub const WINDOW_WIDTH: usize = 640;
-pub const WINDOW_HEIGHT: usize = 320;
 
 pub struct VM<'a> {
     running: bool,
@@ -122,7 +120,9 @@ impl<'a> VM<'a> {
         self.canvas.set_draw_color(Color::BLACK);
         self.canvas.clear();
 
-        let dest_rect = Rect::new(0, 0, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32);
+        let (canvas_width, canvas_height) = self.canvas.output_size().unwrap();
+        let dest_rect = Rect::new(0, 0, canvas_width, canvas_height);
+
         self.texture
             .update(None, self.display.as_flattened(), DISPLAY_WIDTH)
             .unwrap();

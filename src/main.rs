@@ -3,7 +3,10 @@ mod vm;
 use std::fs::File;
 use std::io::Read;
 use sdl2::pixels::PixelFormatEnum;
-use vm::*;
+use vm::{VM, DISPLAY_WIDTH, DISPLAY_HEIGHT};
+
+pub const WINDOW_WIDTH: usize = 640;
+pub const WINDOW_HEIGHT: usize = 320;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
