@@ -19,13 +19,14 @@ pub struct VM<'a> {
     delay_timer: u8,
     sound_timer: u8,
     display: [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+    event_pump: sdl2::EventPump,
     canvas: Canvas<Window>,
     texture: Texture<'a>,
-    sdl_context: sdl2::Sdl,
 }
 
 impl<'a> VM<'a> {
     pub fn new(sdl_context: sdl2::Sdl, canvas: Canvas<Window>, texture: Texture) -> VM {
+        let event_pump = sdl_context.event_pump().unwrap();
         let mut vm = VM {
             running: true,
             ram: [0; 4096],
@@ -37,9 +38,9 @@ impl<'a> VM<'a> {
             delay_timer: 0,
             sound_timer: 0,
             display: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+            event_pump,
             canvas,
             texture,
-            sdl_context,
         };
 
         let font_data: [u8; 80] = [
@@ -73,6 +74,11 @@ impl<'a> VM<'a> {
         while self.running {
             let fetched = self.fetch();
             self.execute(fetched);
+            for event in self.event_pump.poll_iter() {
+                if let Event::KeyDown { scancode: Some(Scancode::Escape), .. } = event {
+                    self.running = false;
+                }
+            }
         }
     }
 
@@ -105,7 +111,11 @@ impl<'a> VM<'a> {
             let sprite_byte = self.ram[self.reg_i as usize + byte as usize];
             for bit in 0..8 {
                 let x_coord = (x as usize + bit) % DISPLAY_WIDTH;
-                let sprite_pixel = (sprite_byte >> (7 - bit)) & 1;
+                let sprite_pixel = match (sprite_byte >> (7 - bit)) & 1 {
+                    0 => 0,
+                    1 => 0xFF,
+                    _ => unreachable!()
+                };
                 let screen_pixel = &mut self.display[y_coord][x_coord];
                 if *screen_pixel == 1 && sprite_pixel == 1 {
                     self.reg[0xF] = 1;
@@ -177,15 +187,13 @@ impl<'a> VM<'a> {
     }
 
     fn is_key_pressed(&self, chip8_key: u8) -> bool {
-        let event_pump = self.sdl_context.event_pump().unwrap();
-        let keyboard_state = event_pump.keyboard_state();
+        let keyboard_state = self.event_pump.keyboard_state();
         keyboard_state.is_scancode_pressed(VM::chip8_key_to_scancode(chip8_key))
     }
 
     fn wait_for_key_press(&mut self) -> u8 {
-        let mut event_pump = self.sdl_context.event_pump().unwrap();
         loop {
-            for event in event_pump.poll_iter() {
+            for event in self.event_pump.poll_iter() {
                 if let Event::KeyDown { scancode: Some(scancode), .. } = event {
                     if let Some(chip8_key) = VM::scancode_to_chip8_key(scancode) {
                         return chip8_key;
