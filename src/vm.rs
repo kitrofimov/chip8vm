@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture};
@@ -18,6 +19,7 @@ pub struct VM<'a> {
     sp: usize,
     delay_timer: u8,
     sound_timer: u8,
+    waiting_for_key: Option<usize>,
     display: [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     event_pump: sdl2::EventPump,
     canvas: Canvas<Window>,
@@ -37,6 +39,7 @@ impl<'a> VM<'a> {
             sp: 0,
             delay_timer: 0,
             sound_timer: 0,
+            waiting_for_key: None,
             display: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             event_pump,
             canvas,
@@ -71,15 +74,43 @@ impl<'a> VM<'a> {
     }
 
     pub fn mainloop(&mut self) {
+        let mut last_timer_update = Instant::now();
         while self.running {
-            let fetched = self.fetch();
-            self.execute(fetched);
+            if last_timer_update.elapsed() >= Duration::from_secs_f64(1.0 / 60.0) {
+                if self.delay_timer > 0 {
+                    self.delay_timer -= 1;
+                }
+                if self.sound_timer > 0 {
+                    self.sound_timer -= 1;
+                }
+                last_timer_update = Instant::now();
+            }
+
             for event in self.event_pump.poll_iter() {
                 if let Event::KeyDown { scancode: Some(Scancode::Escape), .. } = event {
                     self.running = false;
                 }
+                if let Event::KeyUp { scancode: Some(scancode), .. } = event {
+                    if let Some(register) = self.waiting_for_key {
+                        if let Some(chip8_key) = VM::scancode_to_chip8_key(scancode) {
+                            self.reg[register] = chip8_key;
+                            self.waiting_for_key = None;
+                        }
+                    }
+                }
             }
-        }
+
+            // Do not process opcodes while waiting for a key
+            // Is not inside the upper loop because there may be no events
+            if let Some(_register) = self.waiting_for_key {
+                continue;
+            }
+
+            print!("PC: 0x{:X} ", self.pc);
+            let fetched = self.fetch();
+            println!("OPCODE: 0x{:X}", fetched);
+            self.execute(fetched);
+    }
     }
 
     fn push(&mut self, value: u16) {
@@ -191,18 +222,6 @@ impl<'a> VM<'a> {
         keyboard_state.is_scancode_pressed(VM::chip8_key_to_scancode(chip8_key))
     }
 
-    fn wait_for_key_press(&mut self) -> u8 {
-        loop {
-            for event in self.event_pump.poll_iter() {
-                if let Event::KeyDown { scancode: Some(scancode), .. } = event {
-                    if let Some(chip8_key) = VM::scancode_to_chip8_key(scancode) {
-                        return chip8_key;
-                    }
-                }
-            }
-        }
-    }
-
     fn execute(&mut self, opcode: u16) {
         let nnn = opcode & 0x0FFF;
         let nn = (opcode & 0x00FF) as u8;
@@ -294,7 +313,7 @@ impl<'a> VM<'a> {
             },
             0xF000 => match opcode & 0x00FF {
                 0x07 => self.reg[x] = self.delay_timer, // Fx07
-                0x0A => self.reg[x] = self.wait_for_key_press(), // Fx0A
+                0x0A => self.waiting_for_key = Some(x), // Fx0A
                 0x15 => self.delay_timer = self.reg[x], // Fx15
                 0x18 => self.sound_timer = self.reg[x], // Fx18
                 0x1E => self.reg_i = self.reg_i.wrapping_add(self.reg[x] as u16), // Fx1E
