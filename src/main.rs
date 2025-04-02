@@ -23,6 +23,10 @@ fn main() {
     let video_subsystem = sdl_context
         .video()
         .expect("Failed to initialize video subsystem");
+    let audio_subsystem = sdl_context
+        .audio()
+        .expect("Failed to initialize audio subsystem");
+
     let window = video_subsystem
         .window("CHIP-8 Emulator", WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)
         .position_centered()
@@ -44,7 +48,9 @@ fn main() {
         )
         .expect("Failed to create texture");
 
-    let mut vm = VM::new(sdl_context, canvas, texture);
+    let event_pump = sdl_context.event_pump().unwrap();
+
+    let mut vm = VM::new(canvas, texture, event_pump, audio_subsystem);
     vm.load_program(&buffer);
 
     println!("Loaded {} bytes into RAM (address 0x200)", buffer.len());

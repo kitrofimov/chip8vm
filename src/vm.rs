@@ -1,13 +1,40 @@
 use std::time::{Duration, Instant};
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
+use sdl2::{AudioSubsystem, EventPump};
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
+
+const AUDIO_SAMPLE_RATE: f32 = 44100.0;
+const AUDIO_TARGET_FREQUENCY: f32 = 440.0;
+const AUDIO_VOLUME: f32 = 0.1;
+
+struct SquareWave {
+    phase: f32,
+    volume: f32,
+}
+
+impl AudioCallback for SquareWave {
+    type Channel = f32;
+
+    fn callback(&mut self, out: &mut [f32]) {
+        for sample in out.iter_mut() {
+            self.phase = (self.phase + AUDIO_TARGET_FREQUENCY / AUDIO_SAMPLE_RATE) % 1.0;
+
+            *sample = if self.phase < 0.5 {
+                self.volume
+            } else {
+                -self.volume
+            };
+        }
+    }
+}
 
 pub struct VM<'a> {
     running: bool,
@@ -24,11 +51,29 @@ pub struct VM<'a> {
     event_pump: sdl2::EventPump,
     canvas: Canvas<Window>,
     texture: Texture<'a>,
+    audio_device: AudioDevice<SquareWave>,
 }
 
 impl<'a> VM<'a> {
-    pub fn new(sdl_context: sdl2::Sdl, canvas: Canvas<Window>, texture: Texture) -> VM {
-        let event_pump = sdl_context.event_pump().unwrap();
+    pub fn new(
+        canvas: Canvas<Window>,
+        texture: Texture,
+        event_pump: EventPump,
+        audio: AudioSubsystem
+    ) -> VM {
+        let desired_spec = AudioSpecDesired {
+            freq: Some(AUDIO_SAMPLE_RATE as i32),
+            channels: Some(1),
+            samples: None,
+        };
+        let audio_device = audio
+            .open_playback(None, &desired_spec, |_spec| SquareWave {
+                phase: 0.0,
+                volume: 0.0,
+            })
+            .unwrap();
+        audio_device.resume();
+
         let mut vm = VM {
             running: true,
             ram: [0; 4096],
@@ -44,6 +89,7 @@ impl<'a> VM<'a> {
             event_pump,
             canvas,
             texture,
+            audio_device
         };
 
         let font_data: [u8; 80] = [
@@ -80,8 +126,12 @@ impl<'a> VM<'a> {
                 if self.delay_timer > 0 {
                     self.delay_timer -= 1;
                 }
-                if self.sound_timer > 0 {
+                if self.sound_timer >= 1 {
                     self.sound_timer -= 1;
+                    self.audio_device.lock().volume = AUDIO_VOLUME;
+                }
+                else {
+                    self.audio_device.lock().volume = 0.0;
                 }
                 last_timer_update = Instant::now();
             }
