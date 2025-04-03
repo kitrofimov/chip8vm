@@ -198,11 +198,19 @@ impl<'a> VM<'a> {
 
     fn draw_sprite(&mut self, x: u8, y: u8, n: u8) {
         self.reg[0xF] = 0;
+        let x = x % DISPLAY_WIDTH as u8;
+        let y = y % DISPLAY_HEIGHT as u8;
         for byte in 0..n {
-            let y_coord = (y as usize + byte as usize) % DISPLAY_HEIGHT;
+            let y_coord = y as usize + byte as usize;
+            if y_coord >= DISPLAY_HEIGHT {
+                break;
+            }
             let sprite_byte = self.ram[self.reg_i as usize + byte as usize];
             for bit in 0..8 {
-                let x_coord = (x as usize + bit) % DISPLAY_WIDTH;
+                let x_coord = x as usize + bit;
+                if x_coord >= DISPLAY_WIDTH {
+                    break;
+                }
                 let sprite_pixel = match (sprite_byte >> (7 - bit)) & 1 {
                     0 => 0,
                     1 => 0xFF,
