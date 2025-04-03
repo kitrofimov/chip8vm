@@ -309,9 +309,18 @@ impl<'a> VM<'a> {
             0x7000 => self.reg[x] = self.reg[x].wrapping_add(nn), // 7xnn
             0x8000 => match opcode & 0x000F {
                 0x0 => self.reg[x] = self.reg[y], // 8xy0
-                0x1 => self.reg[x] |= self.reg[y], // 8xy1
-                0x2 => self.reg[x] &= self.reg[y], // 8xy2
-                0x3 => self.reg[x] ^= self.reg[y], // 8xy3
+                0x1 => { // 8xy1
+                    self.reg[x] |= self.reg[y];
+                    self.reg[0xF] = 0;
+                }
+                0x2 => { // 8xy2
+                    self.reg[x] &= self.reg[y];
+                    self.reg[0xF] = 0;
+                }
+                0x3 => { // 8xy3
+                    self.reg[x] ^= self.reg[y];
+                    self.reg[0xF] = 0;
+                }
                 0x4 => { // 8xy4
                     let (result, carry) = self.reg[x].overflowing_add(self.reg[y]);
                     self.reg[x] = result;
@@ -328,8 +337,8 @@ impl<'a> VM<'a> {
                         self.reg[x] &= 0x1;
                     }
                     else {
-                    self.reg[0xF] = self.reg[x] & 0x1;
-                    self.reg[x] >>= 1;
+                        self.reg[0xF] = self.reg[x] & 0x1;
+                        self.reg[x] >>= 1;
                     }
                 }
                 0x7 => { // 8xy7
@@ -341,7 +350,7 @@ impl<'a> VM<'a> {
                     self.reg[x] = self.reg[y];
                     self.reg[0xF] = (self.reg[x] & 0x80) >> 7;
                     if x != 0xF {
-                    self.reg[x] <<= 1;
+                        self.reg[x] <<= 1;
                     }
                 }
                 _ => {}
