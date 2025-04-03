@@ -324,8 +324,13 @@ impl<'a> VM<'a> {
                 }
                 0x6 => { // 8xy6
                     self.reg[x] = self.reg[y];
+                    if x == 0xF {
+                        self.reg[x] &= 0x1;
+                    }
+                    else {
                     self.reg[0xF] = self.reg[x] & 0x1;
                     self.reg[x] >>= 1;
+                    }
                 }
                 0x7 => { // 8xy7
                     let (result, borrow) = self.reg[y].overflowing_sub(self.reg[x]);
@@ -335,7 +340,9 @@ impl<'a> VM<'a> {
                 0xE => { // 8xyE
                     self.reg[x] = self.reg[y];
                     self.reg[0xF] = (self.reg[x] & 0x80) >> 7;
+                    if x != 0xF {
                     self.reg[x] <<= 1;
+                    }
                 }
                 _ => {}
             },
