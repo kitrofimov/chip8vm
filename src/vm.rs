@@ -11,6 +11,9 @@ use sdl2::{AudioSubsystem, EventPump};
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
+const VM_FREQUENCY: u32 = 500;
+const TIMER_FREQUENCY: u32 = 60;
+
 const AUDIO_SAMPLE_RATE: f32 = 44100.0;
 const AUDIO_TARGET_FREQUENCY: f32 = 440.0;
 const AUDIO_VOLUME: f32 = 0.1;
@@ -121,16 +124,19 @@ impl<'a> VM<'a> {
 
     pub fn mainloop(&mut self) {
         let mut last_timer_update = Instant::now();
+        let cycle_duration = Duration::from_secs_f64(1.0 / (VM_FREQUENCY as f64));
+
         while self.running {
-            if last_timer_update.elapsed() >= Duration::from_secs_f64(1.0 / 60.0) {
+            let cycle_start = Instant::now();
+
+            if last_timer_update.elapsed() >= Duration::from_secs_f64(1.0 / TIMER_FREQUENCY as f64) {
                 if self.delay_timer > 0 {
                     self.delay_timer -= 1;
                 }
                 if self.sound_timer >= 1 {
                     self.sound_timer -= 1;
                     self.audio_device.lock().volume = AUDIO_VOLUME;
-                }
-                else {
+                } else {
                     self.audio_device.lock().volume = 0.0;
                 }
                 last_timer_update = Instant::now();
@@ -152,7 +158,7 @@ impl<'a> VM<'a> {
 
             // Do not process opcodes while waiting for a key
             // Is not inside the upper loop because there may be no events
-            if let Some(_register) = self.waiting_for_key {
+            if self.waiting_for_key.is_some() {
                 continue;
             }
 
@@ -160,7 +166,12 @@ impl<'a> VM<'a> {
             let fetched = self.fetch();
             println!("OPCODE: 0x{:X}", fetched);
             self.execute(fetched);
-    }
+
+            let elapsed = cycle_start.elapsed();
+            if elapsed < cycle_duration {
+                std::thread::sleep(cycle_duration - elapsed);
+            }
+        }
     }
 
     fn push(&mut self, value: u16) {
