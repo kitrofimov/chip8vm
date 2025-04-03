@@ -1,7 +1,16 @@
 use std::fs::File;
 use std::io::Read;
+use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::rect::Rect;
+use sdl2::render::{Canvas, Texture};
+use sdl2::video::Window;
 
-struct VM {
+const DISPLAY_WIDTH: usize = 64;
+const DISPLAY_HEIGHT: usize = 32;
+const WINDOW_WIDTH: usize = 640;
+const WINDOW_HEIGHT: usize = 320;
+
+struct VM<'a> {
     running: bool,
     ram: [u8; 4096],
     pc: usize,
@@ -11,11 +20,13 @@ struct VM {
     sp: usize,
     delay_timer: u8,
     sound_timer: u8,
-    display: [[u8; 64]; 32],
+    display: [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+    canvas: Canvas<Window>,
+    texture: Texture<'a>,
 }
 
-impl VM {
-    fn new() -> VM {
+impl<'a> VM<'a> {
+    fn new(canvas: Canvas<Window>, texture: Texture) -> VM {
         VM {
             running: true,
             ram: [0; 4096],
@@ -26,6 +37,9 @@ impl VM {
             sp: 0,
             delay_timer: 0,
             sound_timer: 0,
+            display: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
+            canvas,
+            texture,
         }
     }
 
@@ -54,17 +68,17 @@ impl VM {
     }
 
     fn clear_screen(&mut self) {
-        self.display = [[0; 64]; 32];
+        self.display = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
         self.render_display();
     }
 
     fn draw_sprite(&mut self, x: u8, y: u8, n: u8) {
         self.reg[0xF] = 0;
         for byte in 0..n {
-            let y_coord = (y as usize + byte as usize) % 32;
+            let y_coord = (y as usize + byte as usize) % DISPLAY_HEIGHT;
             let sprite_byte = self.ram[self.reg_i as usize + byte as usize];
             for bit in 0..8 {
-                let x_coord = (x as usize + bit) % 64;
+                let x_coord = (x as usize + bit) % DISPLAY_WIDTH;
                 let sprite_pixel = (sprite_byte >> (7 - bit)) & 1;
                 let screen_pixel = &mut self.display[y_coord][x_coord];
                 if *screen_pixel == 1 && sprite_pixel == 1 {
@@ -77,7 +91,16 @@ impl VM {
     }
 
     fn render_display(&mut self) {
-        // TODO: Implement rendering using SDL2
+        self.texture
+            .update(None, self.display.as_flattened(), DISPLAY_WIDTH)
+            .unwrap();
+
+        self.canvas.set_draw_color(Color::BLACK);
+        self.canvas.clear();
+        self.canvas
+            .copy(&self.texture, None, Some(Rect::new(0, 0, WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)))
+            .unwrap();
+        self.canvas.present();
     }
 
     fn is_key_pressed(&self, key: u8) -> bool {
@@ -220,12 +243,31 @@ fn main() {
         eprintln!("Usage: {} <path_to_rom>", args[0]);
         std::process::exit(1);
     }
+
     let mut file = File::open(&args[1]).expect("Failed to open ROM file");
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)
-        .expect("Failed to read ROM file");
+    file.read_to_end(&mut buffer).expect("Failed to read ROM file");
 
-    let mut vm = VM::new();
+    let sdl_context = sdl2::init().expect("Failed to initialize SDL2");
+    let video_subsystem = sdl_context.video().expect("Failed to initialize video subsystem");
+    let window = video_subsystem
+        .window("CHIP-8 Emulator", WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)
+        .position_centered()
+        .build()
+        .expect("Failed to create window");
+    let canvas = window
+        .into_canvas()
+        .accelerated()
+        .present_vsync()
+        .build()
+        .expect("Failed to create canvas");
+
+    let texture_creator = canvas.texture_creator();
+    let texture = texture_creator
+        .create_texture_target(PixelFormatEnum::RGB332, DISPLAY_WIDTH as u32, DISPLAY_HEIGHT as u32)
+        .expect("Failed to create texture");
+
+    let mut vm = VM::new(canvas, texture);
     vm.ram[0x200..0x200 + buffer.len()].copy_from_slice(&buffer);
 
     println!("Loaded {} bytes into RAM (address 0x200)", buffer.len());
