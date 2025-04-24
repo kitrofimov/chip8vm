@@ -1,20 +1,37 @@
-use std::env;
-use std::fs;
+mod instructions;
+mod directives;
+
+use std::{env, error, fmt, fs};
 use std::collections::HashMap;
+use instructions::*;
+use directives::*;
 
 const BYTES_PER_INSTRUCTION: u16 = 2;
 
-#[derive(Debug)]
-struct Statement {
-    statement: String,
+#[derive(Debug, Clone)]
+struct Statement<'a> {
+    lexemes: Vec<&'a str>,
     line_number: usize,
-    instruction_address: OpcodeAddress
 }
 
 #[derive(Debug)]
-struct AssembleError {
-    message: String,
-    bad_statement: Statement
+enum AssembleError {
+    UnknownInstruction { instruction: String, line_number: usize },
+    Unimplemented  // TODO: get rid of this
+}
+
+impl error::Error for AssembleError {}
+
+impl fmt::Display for AssembleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            AssembleError::UnknownInstruction { instruction, line_number } => {
+                format!("Unknown opcode {} at line {}", instruction, line_number)
+            }
+            AssembleError::Unimplemented => "Unimplemented opcode".to_string(),
+        };
+        write!(f, "{}", message)
+    }
 }
 
 type OpcodeAddress = u16;  // Do not need more because of limited ROM size
@@ -61,9 +78,8 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
             labels.insert(label.to_string(), address);
         } else {
             unresolved.push(Statement {
-                statement: line.to_string(),
-                line_number: line_num,
-                instruction_address: address
+                lexemes: line.split_whitespace().collect(),
+                line_number: line_num
             });
             address += BYTES_PER_INSTRUCTION;
         }
@@ -72,6 +88,64 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
     (labels, unresolved)
 }
 
-fn second_pass(symbol_table: &SymbolTable, unresolved: &Vec<Statement>) -> Result<Vec<Opcode>, AssembleError> {
-    unimplemented!();
+fn second_pass(
+    symbol_table: &SymbolTable, 
+    unresolved: &Vec<Statement>
+) -> Result<Vec<Opcode>, AssembleError> {
+    let mut opcodes = Vec::new();
+    for statement in unresolved {
+        let opcode = parse_statement(&statement, &symbol_table)?;
+        opcodes.push(opcode);
+    }
+    Ok(opcodes)
+}
+
+fn parse_statement(
+    statement: &Statement, 
+    symbol_table: &SymbolTable
+) -> Result<Opcode, AssembleError> {
+    let opcode = match statement.lexemes[0].to_uppercase().as_str() {
+        // INSTRUCTIONS
+        "CLS"  =>  cls(statement, symbol_table),
+        "RET"  =>  ret(statement, symbol_table),
+        "SYS"  =>  sys(statement, symbol_table),
+        "JP"   =>   jp(statement, symbol_table),
+        "CALL" => call(statement, symbol_table),
+        "SE"   =>   se(statement, symbol_table),
+        "SNE"  =>  sne(statement, symbol_table),
+        "LD"   =>   ld(statement, symbol_table),
+        "ADD"  =>  add(statement, symbol_table),
+        "OR"   =>   or(statement, symbol_table),
+        "AND"  =>  and(statement, symbol_table),
+        "XOR"  =>  xor(statement, symbol_table),
+        "SUB"  =>  sub(statement, symbol_table),
+        "SHR"  =>  shr(statement, symbol_table),
+        "SUBN" => subn(statement, symbol_table),
+        "SHL"  =>  shl(statement, symbol_table),
+        "RND"  =>  rnd(statement, symbol_table),
+        "DRW"  =>  drw(statement, symbol_table),
+        "SKP"  =>  skp(statement, symbol_table),
+        "SKNP" => sknp(statement, symbol_table),
+        // ASSEMBLER DIRECTIVES
+        ".BYTE" | ".DB"    =>     byte(statement, symbol_table),
+        ".WORD" | ".DW"    =>     word(statement, symbol_table),
+        ".TEXT" | ".ASCII" =>     text(statement, symbol_table),
+        ".FILL"            =>     fill(statement, symbol_table),
+        ".SPACE"           =>    space(statement, symbol_table),
+        ".INCLUDE"         => _include(statement, symbol_table),
+        ".MACRO"           =>   _macro(statement, symbol_table),
+        ".ENDMACRO"        => endmacro(statement, symbol_table),
+        ".DEFINE"          =>   define(statement, symbol_table),
+        ".IF"              =>      _if(statement, symbol_table),
+        ".ELSE"            =>    _else(statement, symbol_table),
+        ".ENDIF"           =>    endif(statement, symbol_table),
+        ".WARN"            =>     warn(statement, symbol_table),
+        ".ERROR"           =>   _error(statement, symbol_table),
+        _ => Err(AssembleError::UnknownInstruction {
+            instruction: statement.lexemes[0].to_string(),
+            line_number: statement.line_number
+        })
+    }?;
+
+    Ok(opcode)
 }

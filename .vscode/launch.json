@@ -2,13 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug",
+      "name": "Debug interpreter",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/target/debug/chip8vm",
-      "args": ["${workspaceFolder}/resources/ibmlogo.ch8"],
+      "program": "${workspaceFolder}/target/debug/interpreter",
+      "args": ["${workspaceFolder}/roms/ibmlogo.ch8"],
       "cwd": "${workspaceFolder}",
       "sourceLanguages": ["rust"]
-      }
+    },
+    {
+      "name": "Debug assembler",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/target/debug/assembler",
+      "args": [
+        "${workspaceFolder}/roms/simple_drawing.asm",
+        "${workspaceFolder}/roms/simple_drawing.ch8"
+      ],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"]
+    },
   ]
 }
