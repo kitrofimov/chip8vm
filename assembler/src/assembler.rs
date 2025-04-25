@@ -116,12 +116,9 @@ pub enum Error {
         n_arguments: usize,
         expected: Vec<usize>,
     },
-    UserError {
-        message: String,
-        line_number: usize,
-    },
+    UserError { message: String, line_number: usize },
     ReadError { path: String },
-    IncludeError { line_number: usize, error: Box<Error> }
+    IncludeError { path: String, line_number: usize, error: Box<Error> }
 }
 
 impl std::error::Error for Error {}
@@ -135,7 +132,7 @@ impl fmt::Display for Error {
             Error::InvalidArgument { argument, line_number } => {
                 format!("Invalid argument \"{}\" at line {}", argument, line_number)
             }
-            Error::InvalidArgumentCount { 
+            Error::InvalidArgumentCount {
                 instruction, line_number, n_arguments, expected
             } => {
                 format!(

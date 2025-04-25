@@ -42,8 +42,7 @@ pub fn _include(
 ) -> Result<Vec<u8>, assembler::Error> {
     let path = statement.parse_string(0)?;
     assembler::assemble_from_file(&path).map_err(|e| assembler::Error::IncludeError {
-        line_number: statement.line_number(),
-        error: Box::new(e)
+        path, line_number: statement.line_number(), error: Box::new(e)
     })
 }
 
