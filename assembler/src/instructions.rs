@@ -1,28 +1,31 @@
-use crate::*;
+use crate::statement::Statement;
+use crate::assembler::SymbolTable;
+use crate::assembler;
+use crate::split_u16;
 
-pub fn cls(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn cls(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(0)?;
     Ok(split_u16!(0x00E0))
 }
 
-pub fn ret(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn ret(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(0)?;
     Ok(split_u16!(0x00EE))
 }
 
 
 pub fn sys(
-    statement: &Statement, 
+    statement: &Statement,
     symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
+) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
     Ok(split_u16!(0x0000 | statement.parse_addr_or_label(0, symbol_table)?))  // 0x0nnn
 }
 
 pub fn jp(
-    statement: &Statement, 
+    statement: &Statement,
     symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
+) -> Result<Vec<u8>, assembler::Error> {
     match statement.n_arguments() {
         1 => Ok(split_u16!(0x1000 | statement.parse_addr_or_label(0, symbol_table)?)),  // 0x1nnn
         2 => {
@@ -42,12 +45,12 @@ pub fn jp(
 pub fn call(
     statement: &Statement,
     symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
+) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
     Ok(split_u16!(0x2000 | statement.parse_addr_or_label(0, symbol_table)?))  // 0x2nnn
 }
 
-pub fn se(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn se(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
@@ -59,7 +62,7 @@ pub fn se(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
         })
 }
 
-pub fn sne(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn sne(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
@@ -72,9 +75,9 @@ pub fn sne(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
 }
 
 pub fn ld(
-    statement: &Statement, 
+    statement: &Statement,
     symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
+) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let address = statement.parse_addr_or_label(1, symbol_table);
     let x = statement.parse_register(0);
@@ -104,7 +107,7 @@ pub fn ld(
     }
 }
 
-pub fn add(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn add(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     if statement.argument(0) == "I" {
         let x = statement.parse_register(1)?;  // ADD I, Vx
@@ -121,49 +124,49 @@ pub fn add(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
     }
 }
 
-pub fn sub(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn sub(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8005 | (x << 8) | (y << 4)))  // 0x8xy5
 }
 
-pub fn subn(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn subn(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8007 | (x << 8) | (y << 4)))  // 0x8xy7
 }
 
-pub fn or(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn or(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8001 | (x << 8) | (y << 4)))  // 0x8xy1
 }
 
-pub fn and(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn and(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8002 | (x << 8) | (y << 4)))  // 0x8xy2
 }
 
-pub fn xor(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn xor(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8003 | (x << 8) | (y << 4)))  // 0x8xy3
 }
 
-pub fn shr(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn shr(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x8006 | (x << 8) | (y << 4)))  // 0x8xy6
 }
 
-pub fn shl(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn shl(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(split_u16!(0x800E | (x << 8) | (y << 4)))  // 0x8xyE
 }
 
-pub fn rnd(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn rnd(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     let byte = statement.parse_number(1)?;
     Ok(split_u16!(0xC000 | (x << 8) | byte))  // 0xCxkk
 }
 
-pub fn drw(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn drw(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(3)?;
     let x = statement.parse_register(0)?;
     let y = statement.parse_register(1)?;
@@ -171,13 +174,13 @@ pub fn drw(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
     Ok(split_u16!(0xD000 | (x << 8) | (y << 4) | nibble))  // 0xDxyn
 }
 
-pub fn skp(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn skp(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
     let x = statement.parse_register(0)?;
     Ok(split_u16!(0xE09E | (x << 8)))  // 0xEx9E
 }
 
-pub fn sknp(statement: &Statement) -> Result<Vec<u8>, AssembleError> {
+pub fn sknp(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
     let x = statement.parse_register(0)?;
     Ok(split_u16!(0xE0A1 | (x << 8)))  // 0xExA1
