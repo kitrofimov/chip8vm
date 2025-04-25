@@ -130,16 +130,16 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self {
             Error::UnknownInstruction { instruction, line_number } => {
-                format!("Unknown instruction {} at line {}", instruction, line_number)
+                format!("Unknown instruction \"{}\" at line {}", instruction, line_number)
             }
             Error::InvalidArgument { argument, line_number } => {
-                format!("Invalid argument {} at line {}", argument, line_number)
+                format!("Invalid argument \"{}\" at line {}", argument, line_number)
             }
             Error::InvalidArgumentCount { 
                 instruction, line_number, n_arguments, expected
             } => {
                 format!(
-                    "Invalid argument count for opcode {} at line {}: found {}, expected {:?}",
+                    "Invalid argument count for instruction \"{}\" at line {}: found {}, expected {:?}",
                     instruction, line_number, n_arguments, expected
                 )
             }
@@ -149,8 +149,8 @@ impl fmt::Display for Error {
             Error::ReadError { path } => {
                 format!("Failed to read file {}", path)
             }
-            Error::IncludeError { line_number, error } => {
-                format!("In file included at line {}: {}", line_number, error)
+            Error::IncludeError { path, line_number, error } => {
+                format!("In file {} included at line {}: {}", path, line_number, error)
             }
         };
         write!(f, "{}", message)
