@@ -244,6 +244,7 @@ fn parse_statement(
         "SKP"  =>  skp(statement),
         "SKNP" => sknp(statement),
         // ASSEMBLER DIRECTIVES
+        // TODO: some directives need to output more than 2 words... what to do?
         ".BYTE" | ".DB"    =>     byte(statement, symbol_table),
         ".WORD" | ".DW"    =>     word(statement, symbol_table),
         ".TEXT" | ".ASCII" =>     text(statement, symbol_table),

@@ -8,10 +8,11 @@ pub fn byte(
 }
 
 pub fn word(
-    _statement: &Statement, 
+    statement: &Statement, 
     _symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    statement.assert_n_arguments(1)?;
+    Ok(statement.parse_number(0)?)
 }
 
 pub fn text(
