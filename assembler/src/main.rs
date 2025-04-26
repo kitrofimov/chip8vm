@@ -234,7 +234,11 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
                 lexemes: line.split_whitespace().map(|s| s.trim_matches(',')).collect(),
                 line_number: line_index + 1
             });
-            address += BYTES_PER_INSTRUCTION;
+            if line.starts_with(".") {  // Assembler directive
+                continue;  // TODO: need to know how many bytes it takes
+            } else {
+                address += BYTES_PER_INSTRUCTION;
+            }
         }
     }
 
