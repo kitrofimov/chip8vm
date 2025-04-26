@@ -40,7 +40,7 @@ pub fn jp(
 }
 
 pub fn call(
-    statement: &Statement, 
+    statement: &Statement,
     symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(1)?;
@@ -90,9 +90,9 @@ pub fn ld(
         _ => {
             let x = x?;
             match statement.argument(1) {
-                "DT" => Ok(0xF007 | (x << 8)),  // LD Vx, DT   0xFx07
-                "K"  => Ok(0xF00A | (x << 8)),  // LD Vx, K    0xFx0A
-                "[I]" => Ok(0xF065 | (x << 8)), // LD Vx, [I]  0xFx65
+                "DT"  => Ok(0xF007 | (x << 8)),  // LD Vx, DT   0xFx07
+                "K"   => Ok(0xF00A | (x << 8)),  // LD Vx, K    0xFx0A
+                "[I]" => Ok(0xF065 | (x << 8)),  // LD Vx, [I]  0xFx65
                 _ => {
                     statement
                         .parse_number(1)
