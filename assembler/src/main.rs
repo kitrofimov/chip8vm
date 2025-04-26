@@ -15,7 +15,7 @@ struct Statement<'a> {
 }
 
 type Number = u16;
-type Register = u8;
+type Register = u16;
 
 impl Statement<'_> {
     fn n_arguments(&self) -> usize {
@@ -30,6 +30,7 @@ impl Statement<'_> {
         self.lexemes[0]
     }
 
+    // TODO: where I am using this function, there is no overflow check
     fn parse_number(&self, argument_index: usize) -> Result<Number, AssembleError> {
         let lexeme = self.argument(argument_index);
         let number = if lexeme.starts_with("0x") {
@@ -46,11 +47,18 @@ impl Statement<'_> {
         if lexeme.len() == 2 && lexeme.starts_with('V') {
             let register_char = lexeme.chars().nth(1).unwrap();
             let register = register_char.to_digit(16)
-                .ok_or_else(|| error)? as u8;
+                .ok_or_else(|| error)? as u16;
             Ok(register)
         } else {
             Err(error)
         }
+    }
+
+    fn parse_only_two_registers(&self) -> Result<(Register, Register), AssembleError> {
+        self.assert_n_arguments(2)?;
+        let x = self.parse_register(0)?;
+        let y = self.parse_register(1)?;
+        Ok((x, y))
     }
 
     fn assert_n_arguments(&self, n: usize) -> Result<(), AssembleError> {
