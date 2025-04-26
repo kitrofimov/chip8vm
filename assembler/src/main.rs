@@ -17,6 +17,13 @@ struct Statement<'a> {
 #[derive(Debug)]
 enum AssembleError {
     UnknownInstruction { instruction: String, line_number: usize },
+    InvalidArgument { argument: String, line_number: usize },
+    InvalidArgumentCount {
+        instruction: String,
+        line_number: usize,
+        n_arguments: usize,
+        expected: Vec<usize>,
+    },
     Unimplemented  // TODO: get rid of this
 }
 
@@ -26,7 +33,18 @@ impl fmt::Display for AssembleError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let message = match self {
             AssembleError::UnknownInstruction { instruction, line_number } => {
-                format!("Unknown opcode {} at line {}", instruction, line_number)
+                format!("Unknown instruction {} at line {}", instruction, line_number)
+            }
+            AssembleError::InvalidArgument { argument, line_number } => {
+                format!("Invalid argument {} at line {}", argument, line_number)
+            }
+            AssembleError::InvalidArgumentCount { 
+                instruction, line_number, n_arguments, expected 
+            } => {
+                format!(
+                    "Invalid argument count for opcode {} at line {}: found {}, expected {:?}",
+                    instruction, line_number, n_arguments, expected
+                )
             }
             AssembleError::Unimplemented => "Unimplemented opcode".to_string(),
         };
