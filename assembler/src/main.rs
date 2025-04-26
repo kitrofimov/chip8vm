@@ -14,6 +14,74 @@ struct Statement<'a> {
     line_number: usize,
 }
 
+type Number = u16;
+type Register = u8;
+
+impl Statement<'_> {
+    fn n_arguments(&self) -> usize {
+        self.lexemes.len() - 1
+    }
+
+    fn argument(&self, argument_index: usize) -> &str {
+        self.lexemes[argument_index + 1]
+    }
+
+    fn instruction(&self) -> &str {
+        self.lexemes[0]
+    }
+
+    fn parse_number(&self, argument_index: usize) -> Result<Number, AssembleError> {
+        let lexeme = self.argument(argument_index);
+        let number = if lexeme.starts_with("0x") {
+            u16::from_str_radix(&lexeme[2..], 16)
+        } else {
+            lexeme.parse::<Number>()
+        };
+        number.map_err(|_| self.invalid_argument(argument_index))
+    }
+
+    fn parse_register(&self, argument_index: usize) -> Result<Register, AssembleError> {
+        let lexeme = self.argument(argument_index);
+        let error = self.invalid_argument(argument_index);
+        if lexeme.len() == 2 && lexeme.starts_with('V') {
+            let register_char = lexeme.chars().nth(1).unwrap();
+            let register = register_char.to_digit(16)
+                .ok_or_else(|| error)? as u8;
+            Ok(register)
+        } else {
+            Err(error)
+        }
+    }
+
+    fn assert_n_arguments(&self, n: usize) -> Result<(), AssembleError> {
+        let n_arguments = self.n_arguments();
+        if n_arguments != n {
+            return Err(self.invalid_argument_count(n_arguments, vec![n]));
+        }
+        Ok(())
+    }
+
+    fn invalid_argument(&self, argument_index: usize) -> AssembleError {
+        AssembleError::InvalidArgument {
+            argument: self.lexemes[argument_index + 1].to_string(),
+            line_number: self.line_number
+        }
+    }
+
+    fn invalid_argument_count(
+        &self, 
+        n_arguments: usize, 
+        expected: Vec<usize>  // e.g. 1 OR 2 arguments are expected
+    ) -> AssembleError {
+        AssembleError::InvalidArgumentCount {
+            instruction: self.instruction().to_string(),
+            line_number: self.line_number,
+            n_arguments,
+            expected
+        }
+    }
+}
+
 #[derive(Debug)]
 enum AssembleError {
     UnknownInstruction { instruction: String, line_number: usize },
