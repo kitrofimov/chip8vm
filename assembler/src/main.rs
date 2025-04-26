@@ -33,12 +33,13 @@ impl Statement<'_> {
     // TODO: where I am using this function, there is no overflow check
     fn parse_number(&self, argument_index: usize) -> Result<Number, AssembleError> {
         let lexeme = self.argument(argument_index);
-        let number = if lexeme.starts_with("0x") {
+        if lexeme.starts_with("0x") {
             u16::from_str_radix(&lexeme[2..], 16)
+        } else if lexeme.starts_with("0b") {
+            u16::from_str_radix(&lexeme[2..], 2)
         } else {
             lexeme.parse::<Number>()
-        };
-        number.map_err(|_| self.invalid_argument(argument_index))
+        }.map_err(|_| self.invalid_argument(argument_index))
     }
 
     fn parse_register(&self, argument_index: usize) -> Result<Register, AssembleError> {
