@@ -149,8 +149,7 @@ enum AssembleError {
         line_number: usize,
     },
     ReadError { path: String },
-    IncludeError { line_number: usize, error: Box<AssembleError> },
-    Unimplemented  // TODO: get rid of this
+    IncludeError { line_number: usize, error: Box<AssembleError> }
 }
 
 impl error::Error for AssembleError {}
@@ -181,7 +180,6 @@ impl fmt::Display for AssembleError {
             AssembleError::IncludeError { line_number, error } => {
                 format!("In file included at line {}: {}", line_number, error)
             }
-            AssembleError::Unimplemented => "Unimplemented opcode".to_string(),
         };
         write!(f, "{}", message)
     }
