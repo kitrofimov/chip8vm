@@ -67,7 +67,7 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
     let mut unresolved = Vec::new();
     let mut address: OpcodeAddress = 0;
 
-    for (line_num, line) in source.lines().enumerate() {
+    for (line_index, line) in source.lines().enumerate() {
         let line = line.trim();
         if line.is_empty() || line.starts_with(';') {
             continue;
@@ -78,8 +78,8 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
             labels.insert(label.to_string(), address);
         } else {
             unresolved.push(Statement {
-                lexemes: line.split_whitespace().collect(),
-                line_number: line_num
+                lexemes: line.split_whitespace().map(|s| s.trim_matches(',')).collect(),
+                line_number: line_index + 1
             });
             address += BYTES_PER_INSTRUCTION;
         }
