@@ -1,17 +1,11 @@
 use crate::*;
 
-pub fn cls(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn cls(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(0)?;
     Ok(0x00E0)
 }
 
-pub fn ret(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn ret(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(0)?;
     Ok(0x00EE)
 }
@@ -58,10 +52,7 @@ pub fn call(
     Ok(0x2000 | address)  // 0x2nnn
 }
 
-pub fn se(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn se(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
@@ -73,10 +64,7 @@ pub fn se(
         })
 }
 
-pub fn sne(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn sne(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
@@ -121,10 +109,7 @@ pub fn ld(
     }
 }
 
-pub fn add(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn add(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(2)?;
     if statement.argument(0) == "I" {
         let x = statement.parse_register(1)?;  // ADD I, Vx
@@ -141,76 +126,49 @@ pub fn add(
     }
 }
 
-pub fn sub(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn sub(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8005 | (x << 8) | (y << 4))  // 0x8xy5
 }
 
-pub fn subn(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn subn(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8007 | (x << 8) | (y << 4))  // 0x8xy7
 }
 
-pub fn or(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn or(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8001 | (x << 8) | (y << 4))  // 0x8xy1
 }
 
-pub fn and(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn and(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8002 | (x << 8) | (y << 4))  // 0x8xy2
 }
 
-pub fn xor(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn xor(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8003 | (x << 8) | (y << 4))  // 0x8xy3
 }
 
-pub fn shr(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn shr(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x8006 | (x << 8) | (y << 4))  // 0x8xy6
 }
 
-pub fn shl(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn shl(statement: &Statement) -> Result<Opcode, AssembleError> {
     let (x, y) = statement.parse_only_two_registers()?;
     Ok(0x800E | (x << 8) | (y << 4))  // 0x8xyE
 }
 
-pub fn rnd(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn rnd(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     let byte = statement.parse_number(1)?;
     Ok(0xC000 | (x << 8) | byte)  // 0xCxkk
 }
 
-pub fn drw(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn drw(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(3)?;
     let x = statement.parse_register(0)?;
     let y = statement.parse_register(1)?;
@@ -218,19 +176,13 @@ pub fn drw(
     Ok(0xD000 | (x << 8) | (y << 4) | nibble)  // 0xDxyn
 }
 
-pub fn skp(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn skp(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(1)?;
     let x = statement.parse_register(0)?;
     Ok(0xE09E | (x << 8))  // 0xEx9E
 }
 
-pub fn sknp(
-    statement: &Statement, 
-    _symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+pub fn sknp(statement: &Statement) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(1)?;
     let x = statement.parse_register(0)?;
     Ok(0xE0A1 | (x << 8))  // 0xExA1
