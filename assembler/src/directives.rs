@@ -5,14 +5,14 @@ pub fn byte(
     statement: &Statement,
 ) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
-    Ok(vec![statement.parse_number(0)? as u8])
+    Ok(vec![statement.parse_number(0, 8)? as u8])
 }
 
 pub fn word(
     statement: &Statement,
 ) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
-    Ok(split_u16!(statement.parse_number(0)?))
+    Ok(split_u16!(statement.parse_number(0, 16)?))
 }
 
 pub fn text(
@@ -25,8 +25,8 @@ pub fn fill(
     statement: &Statement,
 ) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
-    let n = statement.parse_number(0)?;
-    let byte = statement.parse_number(1)? as u8;
+    let n = statement.parse_number(0, 16)?;
+    let byte = statement.parse_number(1, 8)? as u8;
     Ok(vec![byte; n as usize])
 }
 
@@ -34,7 +34,7 @@ pub fn space(
     statement: &Statement,
 ) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(1)?;
-    Ok(vec![0x00; statement.parse_number(0)? as usize])
+    Ok(vec![0x00; statement.parse_number(0, 16)? as usize])
 }
 
 pub fn _include(

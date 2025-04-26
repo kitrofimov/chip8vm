@@ -28,16 +28,33 @@ impl Statement<'_> {
         self.lexemes[0]
     }
 
-    // TODO: where I am using this function, there is no overflow check
-    pub fn parse_number(&self, argument_index: usize) -> Result<u16, assembler::Error> {
+    pub fn parse_number(
+        &self, argument_index: usize, max_n_bits: usize
+    ) -> Result<u16, assembler::Error> {
         let lexeme = self.argument(argument_index);
-        if lexeme.starts_with("0x") {
+        let num = if lexeme.starts_with("0x") {
             u16::from_str_radix(&lexeme[2..], 16)
         } else if lexeme.starts_with("0b") {
             u16::from_str_radix(&lexeme[2..], 2)
         } else {
             lexeme.parse::<u16>()
-        }.map_err(|_| self.invalid_argument(argument_index))
+        };
+        match num {
+            Ok(num) => {
+                let max: u16 = u16::MAX >> (16 - max_n_bits);
+                if num > max {
+                    Err(assembler::Error::ArgumentOverflow {
+                        instruction: self.instruction().to_string(),
+                        line_number: self.line_number(),
+                        argument: num,
+                        expected_n_bits: max_n_bits
+                    })
+                } else {
+                    Ok(num)
+                }
+            },
+            Err(_) => Err(self.invalid_argument(argument_index))
+        }
     }
 
     pub fn parse_register(&self, argument_index: usize) -> Result<u16, assembler::Error> {
@@ -78,7 +95,7 @@ impl Statement<'_> {
         argument_index: usize,
         symbol_table: &SymbolTable
     ) -> Result<OpcodeAddress, assembler::Error> {
-        self.parse_number(argument_index)
+        self.parse_number(argument_index, 12)
             .or_else(|_| self.parse_label(argument_index, symbol_table))
     }
 

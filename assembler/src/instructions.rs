@@ -54,7 +54,7 @@ pub fn se(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
-        .parse_number(1)                                   // SE Vx, byte
+        .parse_number(1, 8)                                // SE Vx, byte
         .map(|byte| split_u16!(0x3000 | (x << 8) | byte))  // 0x3xkk
         .or_else(|_| {
             let y = statement.parse_register(1)?;         // SE Vx, Vy
@@ -66,7 +66,7 @@ pub fn sne(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
     statement
-        .parse_number(1)                                   // SNE Vx, byte
+        .parse_number(1, 8)                                // SNE Vx, byte
         .map(|byte| split_u16!(0x4000 | (x << 8) | byte))  // 0x4xkk
         .or_else(|_| {
             let y = statement.parse_register(1)?;         // SNE Vx, Vy
@@ -98,7 +98,7 @@ pub fn ld(
                 "[I]" => Ok(split_u16!(0xF065 | (x << 8))),  // LD Vx, [I]  0xFx65
                 _ => {
                     statement
-                        .parse_number(1)
+                        .parse_number(1, 8)
                         .map(|byte| split_u16!(0x6000 | (x << 8) | byte))            // LD Vx, byte  0x6xkk
                         .or_else(|_| Ok(split_u16!(0x8000 | (x << 8) | (y? << 4))))  // LD Vx, Vy    0x8xy0
                 }
@@ -115,7 +115,7 @@ pub fn add(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     } else {
         let x = statement.parse_register(0)?;
         statement
-            .parse_number(1)                                   // ADD Vx, byte
+            .parse_number(1, 8)                                   // ADD Vx, byte
             .map(|byte| split_u16!(0x7000 | (x << 8) | byte))  // 0x7xkk
             .or_else(|_| {
                 let y = statement.parse_register(1)?;         // ADD Vx, Vy
@@ -162,7 +162,7 @@ pub fn shl(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
 pub fn rnd(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
     let x = statement.parse_register(0)?;
-    let byte = statement.parse_number(1)?;
+    let byte = statement.parse_number(1, 8)?;
     Ok(split_u16!(0xC000 | (x << 8) | byte))  // 0xCxkk
 }
 
@@ -170,7 +170,7 @@ pub fn drw(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(3)?;
     let x = statement.parse_register(0)?;
     let y = statement.parse_register(1)?;
-    let nibble = statement.parse_number(2)?;
+    let nibble = statement.parse_number(2, 4)?;
     Ok(split_u16!(0xD000 | (x << 8) | (y << 4) | nibble))  // 0xDxyn
 }
 

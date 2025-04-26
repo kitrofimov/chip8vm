@@ -118,7 +118,13 @@ pub enum Error {
     },
     UserError { message: String, line_number: usize },
     ReadError { path: String },
-    IncludeError { path: String, line_number: usize, error: Box<Error> }
+    IncludeError { path: String, line_number: usize, error: Box<Error> },
+    ArgumentOverflow {
+        instruction: String,
+        line_number: usize,
+        argument: u16,
+        expected_n_bits: usize
+    }
 }
 
 impl std::error::Error for Error {}
@@ -148,6 +154,12 @@ impl fmt::Display for Error {
             }
             Error::IncludeError { path, line_number, error } => {
                 format!("In file {} included at line {}: {}", path, line_number, error)
+            },
+            Error::ArgumentOverflow { instruction, line_number, argument, expected_n_bits } => {
+                format!(
+                    "Argument overflow (instruction {}) at line {}: expected {} bits (max = {}), got {}", 
+                    instruction, line_number, expected_n_bits, ((1u32 << 16) - 1) >> (16 - expected_n_bits), argument
+                )
             }
         };
         write!(f, "{}", message)
