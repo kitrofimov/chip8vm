@@ -6,6 +6,14 @@ use std::collections::HashMap;
 use instructions::*;
 use directives::*;
 
+#[macro_export]
+macro_rules! split_u16 {
+    ($val:expr) => {{
+        let val = $val;
+        vec![(val >> 8) as u8, val as u8]
+    }};
+}
+
 const BYTES_PER_INSTRUCTION: u16 = 2;
 
 #[derive(Debug, Clone)]
@@ -152,7 +160,6 @@ impl fmt::Display for AssembleError {
 }
 
 type OpcodeAddress = u16;  // Do not need more because of limited ROM size
-type Opcode = u16;
 type SymbolTable = HashMap<String, OpcodeAddress>;
 
 fn main() {
@@ -174,7 +181,7 @@ fn main() {
     fs::write(output_path, bytecode).expect("Failed to write output file");
 }
 
-fn assemble(source: &str) -> Result<Vec<Opcode>, AssembleError> {
+fn assemble(source: &str) -> Result<Vec<u8>, AssembleError> {
     let (symbol_table, unresolved) = first_pass(source);
     second_pass(&symbol_table, &unresolved)
 }
@@ -208,19 +215,19 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
 fn second_pass(
     symbol_table: &SymbolTable, 
     unresolved: &Vec<Statement>
-) -> Result<Vec<Opcode>, AssembleError> {
+) -> Result<Vec<u8>, AssembleError> {
     let mut opcodes = Vec::new();
     for statement in unresolved {
         let opcode = parse_statement(&statement, &symbol_table)?;
         opcodes.push(opcode);
     }
-    Ok(opcodes)
+    Ok(opcodes.into_iter().flatten().collect())
 }
 
 fn parse_statement(
     statement: &Statement, 
     symbol_table: &SymbolTable
-) -> Result<Opcode, AssembleError> {
+) -> Result<Vec<u8>, AssembleError> {
     let opcode = match statement.lexemes[0].to_uppercase().as_str() {
         // INSTRUCTIONS
         "CLS"  =>  cls(statement),
