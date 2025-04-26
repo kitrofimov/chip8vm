@@ -13,25 +13,21 @@ pub fn ret(statement: &Statement) -> Result<Opcode, AssembleError> {
 
 pub fn sys(
     statement: &Statement, 
-    _symbol_table: &SymbolTable
+    symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(1)?;
-    let address = statement.parse_number(0)?;
-    Ok(0x0000 | address)  // 0x0nnn
+    Ok(0x0000 | statement.parse_addr_or_label(0, symbol_table)?)  // 0x0nnn
 }
 
 pub fn jp(
     statement: &Statement, 
-    _symbol_table: &SymbolTable
+    symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
     match statement.n_arguments() {
-        1 => {
-            let address = statement.parse_number(0)?;
-            Ok(0x1000 | address)  // 0x1nnn
-        }
+        1 => Ok(0x1000 | statement.parse_addr_or_label(0, symbol_table)?),  // 0x1nnn
         2 => {
             let register = statement.parse_register(0)?;
-            let address = statement.parse_number(1)?;
+            let address = statement.parse_addr_or_label(1, symbol_table)?;
             if register != 0 {  // Only V0 is allowed
                 return Err(statement.invalid_argument(0));
             }
@@ -45,11 +41,10 @@ pub fn jp(
 
 pub fn call(
     statement: &Statement, 
-    _symbol_table: &SymbolTable
+    symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(1)?;
-    let address = statement.parse_number(0)?;
-    Ok(0x2000 | address)  // 0x2nnn
+    Ok(0x2000 | statement.parse_addr_or_label(0, symbol_table)?)  // 0x2nnn
 }
 
 pub fn se(statement: &Statement) -> Result<Opcode, AssembleError> {
@@ -78,10 +73,10 @@ pub fn sne(statement: &Statement) -> Result<Opcode, AssembleError> {
 
 pub fn ld(
     statement: &Statement, 
-    _symbol_table: &SymbolTable
+    symbol_table: &SymbolTable
 ) -> Result<Opcode, AssembleError> {
     statement.assert_n_arguments(2)?;
-    let address = statement.parse_number(1);
+    let address = statement.parse_addr_or_label(1, symbol_table);
     let x = statement.parse_register(0);
     let y = statement.parse_register(1);
 

@@ -62,6 +62,28 @@ impl Statement<'_> {
         Ok((x, y))
     }
 
+    fn parse_label(
+        &self,
+        argument_index: usize,
+        symbol_table: &SymbolTable
+    ) -> Result<OpcodeAddress, AssembleError> {
+        let lexeme = self.argument(argument_index);
+        symbol_table
+            .get(lexeme)
+            .copied()
+            .map(|x| x + 0x200)  // offset for ROM
+            .ok_or_else(|| self.invalid_argument(argument_index))
+    }
+
+    fn parse_addr_or_label(
+        &self,
+        argument_index: usize,
+        symbol_table: &SymbolTable
+    ) -> Result<OpcodeAddress, AssembleError> {
+        self.parse_number(argument_index)
+            .or_else(|_| self.parse_label(argument_index, symbol_table))
+    }
+
     fn assert_n_arguments(&self, n: usize) -> Result<(), AssembleError> {
         let n_arguments = self.n_arguments();
         if n_arguments != n {
