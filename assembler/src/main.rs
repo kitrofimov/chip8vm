@@ -287,12 +287,6 @@ fn parse_statement(
         ".FILL"            =>     fill(statement),
         ".SPACE"           =>    space(statement),
         ".INCLUDE"         => _include(statement),
-        ".MACRO"           =>   _macro(statement, symbol_table),
-        ".ENDMACRO"        => endmacro(statement, symbol_table),
-        ".DEFINE"          =>   define(statement, symbol_table),
-        ".IF"              =>      _if(statement, symbol_table),
-        ".ELSE"            =>    _else(statement, symbol_table),
-        ".ENDIF"           =>    endif(statement, symbol_table),
         ".WARN"            =>     warn(statement),
         ".ERROR"           =>   _error(statement),
         _ => Err(AssembleError::UnknownInstruction {

@@ -46,48 +46,6 @@ pub fn _include(
     })
 }
 
-pub fn _macro(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
-pub fn endmacro(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
-pub fn define(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
-pub fn _if(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
-pub fn _else(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
-pub fn endif(
-    _statement: &Statement,
-    _symbol_table: &SymbolTable
-) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
-}
-
 pub fn warn(
     statement: &Statement,
 ) -> Result<Vec<u8>, AssembleError> {
