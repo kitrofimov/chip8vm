@@ -4,6 +4,7 @@ mod instructions;
 mod directives;
 mod codegen_utils;
 use std::{env, fs};
+use colored::Colorize;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -15,15 +16,18 @@ fn main() {
     let input_path = &args[1];
     let output_path = &args[2];
 
+    let error = "error:".red().bold();
+
     let bytecode = assembler::assemble_from_file(&input_path)
         .unwrap_or_else(|e| {
-            eprintln!("Failed to assemble! {}", e);
+            eprintln!("{} {}", error, e.to_string());
             std::process::exit(1);
         });
 
     fs::write(output_path, bytecode)
-        .unwrap_or_else(|_| {
-            eprintln!("Failed to write to output file: {}", output_path);
+        .unwrap_or_else(|e| {
+            eprintln!("{} failed to write to output file: {}", error, output_path);
+            eprintln!("{}", e);
             std::process::exit(2);
         });
 }

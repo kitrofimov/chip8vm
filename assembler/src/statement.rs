@@ -6,15 +6,22 @@ pub struct Statement<'a> {
     instruction: &'a str,
     arguments: Vec<&'a str>,
     line_number: usize,
+    line: &'a str
 }
 
 impl<'a> Statement<'a> {
     pub fn new(
         instruction: &'a str,
         arguments: Vec<&'a str>,
-        line_number: usize
+        line_number: usize,
+        line: &'a str
     ) -> Statement<'a> {
-        Statement { instruction, arguments, line_number }
+        Statement {
+            instruction,
+            arguments,
+            line_number,
+            line
+        }
     }
 
     pub fn instruction(&self) -> &str {
@@ -27,6 +34,10 @@ impl<'a> Statement<'a> {
 
     pub fn line_number(&self) -> usize {
         self.line_number
+    }
+
+    pub fn line(&self) -> String {
+        self.line.to_string()
     }
 
     pub fn argument(&self, argument_index: usize) -> Result<&str, assembler::Error> {
@@ -54,10 +65,10 @@ impl<'a> Statement<'a> {
                 let max: u16 = u16::MAX >> (16 - max_n_bits);
                 if num > max {
                     Err(assembler::Error::ArgumentOverflow {
-                        instruction: self.instruction.to_string(),
-                        line_number: self.line_number(),
                         argument: num,
-                        expected_n_bits: max_n_bits
+                        expected_n_bits: max_n_bits,
+                        line_number: self.line_number(),
+                        line: self.line()
                     })
                 } else {
                     Ok(num)
@@ -125,7 +136,8 @@ impl<'a> Statement<'a> {
     pub fn invalid_argument(&self, argument_index: usize) -> assembler::Error {
         assembler::Error::InvalidArgument {
             argument: self.arguments[argument_index].to_string(),
-            line_number: self.line_number
+            line_number: self.line_number,
+            line: self.line()
         }
     }
 
@@ -136,9 +148,10 @@ impl<'a> Statement<'a> {
     ) -> assembler::Error {
         assembler::Error::InvalidArgumentCount {
             instruction: self.instruction.to_string(),
-            line_number: self.line_number,
             n_arguments,
-            expected
+            expected,
+            line_number: self.line_number,
+            line: self.line()
         }
     }
 }

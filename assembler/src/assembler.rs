@@ -39,7 +39,12 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
         } else {
             let re = Regex::new(r#""[^"]*"|[^,\s]+"#).unwrap();
             let lexemes: Vec<&str> = re.find_iter(line).map(|mat| mat.as_str()).collect();
-            unresolved.push(Statement::new(lexemes[0], lexemes[1..].to_vec(), line_index + 1));
+            unresolved.push(Statement::new(
+                lexemes[0],
+                lexemes[1..].to_vec(),
+                line_index + 1,
+                line
+            ));
             if line.starts_with(".") {  // Assembler directive
                 continue;  // TODO: need to know how many bytes it takes
             } else {
@@ -100,7 +105,8 @@ fn parse_statement(
         ".ERROR"           =>   _error(statement),
         _ => Err(Error::UnknownInstruction {
             instruction: statement.instruction().to_string(),
-            line_number: statement.line_number()
+            line_number: statement.line_number(),
+            line: statement.line()
         })
     }?;
     Ok(opcode)
@@ -108,22 +114,42 @@ fn parse_statement(
 
 #[derive(Debug)]
 pub enum Error {
-    UnknownInstruction { instruction: String, line_number: usize },
-    InvalidArgument { argument: String, line_number: usize },
+    UnknownInstruction {
+        instruction: String,
+        line_number: usize,
+        line: String
+    },
+    InvalidArgument {
+        argument: String,
+        line_number: usize,
+        line: String
+    },
     InvalidArgumentCount {
         instruction: String,
-        line_number: usize,
         n_arguments: usize,
         expected: Vec<usize>,
-    },
-    UserError { message: String, line_number: usize },
-    ReadError { path: String },
-    IncludeError { path: String, line_number: usize, error: Box<Error> },
-    ArgumentOverflow {
-        instruction: String,
         line_number: usize,
+        line: String
+    },
+    UserError {
+        message: String,
+        line_number: usize,
+        line: String
+    },
+    ReadError {
+        path: String
+    },
+    IncludeError {
+        path: String,
+        error: Box<Error>,
+        line_number: usize,
+        line: String
+    },
+    ArgumentOverflow {
         argument: u16,
-        expected_n_bits: usize
+        expected_n_bits: usize,
+        line_number: usize,
+        line: String
     },
     InvalidArgumentIndex {
         requested_index: usize,
@@ -135,44 +161,54 @@ impl std::error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let message = match self {
-            Error::UnknownInstruction { instruction, line_number } => {
-                format!("Unknown instruction \"{}\" at line {}", instruction, line_number)
-            }
-            Error::InvalidArgument { argument, line_number } => {
-                format!("Invalid argument \"{}\" at line {}", argument, line_number)
-            }
-            Error::InvalidArgumentCount {
-                instruction, line_number, n_arguments, expected
-            } => {
+        let (message, line, line_number) = match self {
+            Error::UnknownInstruction { instruction, line_number, line } => (
+                format!("unknown instruction \"{}\" at line {}", instruction, line_number),
+                Some(line), Some(line_number)
+            ),
+            Error::InvalidArgument { argument, line_number, line } => (
+                format!("invalid argument \"{}\" at line {}", argument, line_number),
+                Some(line), Some(line_number)
+            ),
+            Error::InvalidArgumentCount {instruction, line_number, n_arguments, expected, line} => (
                 format!(
-                    "Invalid argument count for instruction \"{}\" at line {}: found {}, expected {:?}",
+                    "invalid argument count for instruction \"{}\" at line {}: found {}, expected {:?}",
                     instruction, line_number, n_arguments, expected
-                )
-            }
-            Error::UserError { message, line_number } => {
-                format!("Error at line {}: {}", line_number, message)
-            }
-            Error::ReadError { path } => {
-                format!("Failed to read file {}", path)
-            }
-            Error::IncludeError { path, line_number, error } => {
-                format!("In file {} included at line {}: {}", path, line_number, error)
-            },
-            Error::ArgumentOverflow { instruction, line_number, argument, expected_n_bits } => {
+                ),
+                Some(line), Some(line_number)
+            ),
+            Error::UserError { message, line_number, line } => (
+                format!("line {}: {}", line_number, message),
+                Some(line), Some(line_number)
+            ),
+            Error::ReadError { path } => (
+                format!("failed to read file {}", path),
+                None, None
+            ),
+            Error::IncludeError { path, line_number, error, line } => (
+                format!("in file {} included at line {}: {}", path, line_number, error),
+                Some(line), Some(line_number)
+            ),
+            Error::ArgumentOverflow { line_number, argument, expected_n_bits, line } => (
                 format!(
-                    "Argument overflow (instruction {}) at line {}: expected {} bits (max = {}), got {}", 
-                    instruction, line_number, expected_n_bits, ((1u32 << 16) - 1) >> (16 - expected_n_bits), argument
-                )
-            },
-            Error::InvalidArgumentIndex { requested_index, n_arguments } => {
+                    "argument overflow at line {}: maximum allowed value {} (to fit in {} bits), got {}", 
+                    line_number, ((1u32 << 16) - 1) >> (16 - expected_n_bits), expected_n_bits, argument
+                ),
+                Some(line), Some(line_number)
+            ),
+            Error::InvalidArgumentIndex { requested_index, n_arguments } => (
                 format!(
-                    "Invalid argument index {} requested; number of arguments: {}. If you see this, this \
+                    "invalid argument index {} requested; number of arguments: {}. If you see this, this \
                     is probably an internal bug in the assembler itself. Please, submit a GitHub issue.",
                     requested_index, n_arguments
-                )
-            }
+                ),
+                None, None
+            )
         };
-        write!(f, "{}", message)
+        writeln!(f, "{}", message)?;
+        if let (Some(line), Some(line_number)) = (line, line_number) {
+            write!(f, "{}\t{}", line_number, line)?;
+        }
+        Ok(())
     }
 }
