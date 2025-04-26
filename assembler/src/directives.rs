@@ -1,14 +1,15 @@
 use crate::*;
 
 pub fn byte(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    statement.assert_n_arguments(1)?;
+    Ok(vec![statement.parse_number(0)? as u8])
 }
 
 pub fn word(
-    statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     statement.assert_n_arguments(1)?;
@@ -16,84 +17,102 @@ pub fn word(
 }
 
 pub fn text(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    Ok(statement.parse_string(0)?.into_bytes())
 }
 
 pub fn fill(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    statement.assert_n_arguments(2)?;
+    let n = statement.parse_number(0)?;
+    let byte = statement.parse_number(0)? as u8;
+    Ok(vec![byte; n as usize])
 }
 
 pub fn space(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    statement.assert_n_arguments(1)?;
+    Ok(vec![0x00; statement.parse_number(0)? as usize])
 }
 
 pub fn _include(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
+    let path = statement.parse_string(0)?;
+    assemble_from_file(&path).map_err(|e| AssembleError::IncludeError {
+        line_number: statement.line_number,
+        error: Box::new(e)
+    })
 }
 
 pub fn _macro(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn endmacro(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn define(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn _if(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn _else(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn endif(
-    _statement: &Statement, 
+    _statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
     Err(AssembleError::Unimplemented)
 }
 
 pub fn warn(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    // TODO: reimplement this when I decide about logging
+    println!(
+        "WARNING: {}; line {}",
+        statement.parse_string(0).unwrap_or("<no message>".to_string()),
+        statement.line_number
+    );
+    Ok(vec![])
 }
 
 pub fn _error(
-    _statement: &Statement, 
+    statement: &Statement,
     _symbol_table: &SymbolTable
 ) -> Result<Vec<u8>, AssembleError> {
-    Err(AssembleError::Unimplemented)
+    Err(AssembleError::UserError {
+        message: statement.parse_string(0).unwrap_or("<no message>".to_string()),
+        line_number: statement.line_number,
+    })
 }

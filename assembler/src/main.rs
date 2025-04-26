@@ -92,6 +92,19 @@ impl Statement<'_> {
             .or_else(|_| self.parse_label(argument_index, symbol_table))
     }
 
+    fn parse_string(&self, argument_index: usize) -> Result<String, AssembleError> {
+        let lexeme = self.argument(argument_index);
+        if !lexeme.starts_with('"') {
+            return Err(self.invalid_argument(argument_index));
+        }
+        for i in argument_index..self.n_arguments() - 1 {
+            if self.argument(i).ends_with('"') {
+                return Ok(self.lexemes[argument_index..i].join(" ").trim_matches('"').to_string());
+            }
+        };
+        Err(self.invalid_argument(argument_index))
+    }
+
     fn assert_n_arguments(&self, n: usize) -> Result<(), AssembleError> {
         let n_arguments = self.n_arguments();
         if n_arguments != n {
@@ -131,6 +144,12 @@ enum AssembleError {
         n_arguments: usize,
         expected: Vec<usize>,
     },
+    UserError {
+        message: String,
+        line_number: usize,
+    },
+    ReadError { path: String },
+    IncludeError { line_number: usize, error: Box<AssembleError> },
     Unimplemented  // TODO: get rid of this
 }
 
@@ -146,12 +165,21 @@ impl fmt::Display for AssembleError {
                 format!("Invalid argument {} at line {}", argument, line_number)
             }
             AssembleError::InvalidArgumentCount { 
-                instruction, line_number, n_arguments, expected 
+                instruction, line_number, n_arguments, expected
             } => {
                 format!(
                     "Invalid argument count for opcode {} at line {}: found {}, expected {:?}",
                     instruction, line_number, n_arguments, expected
                 )
+            }
+            AssembleError::UserError { message, line_number } => {
+                format!("Error at line {}: {}", line_number, message)
+            }
+            AssembleError::ReadError { path } => {
+                format!("Failed to read file {}", path)
+            }
+            AssembleError::IncludeError { line_number, error } => {
+                format!("In file included at line {}: {}", line_number, error)
             }
             AssembleError::Unimplemented => "Unimplemented opcode".to_string(),
         };
@@ -172,13 +200,15 @@ fn main() {
     let input_path = &args[1];
     let output_path = &args[2];
 
-    let source = fs::read_to_string(input_path).expect("Failed to read input file");
-    let opcodes = assemble(&source).expect("Failed to assemble");
-
-    let bytecode: Vec<u8> = opcodes.iter()
-        .flat_map(|word| word.to_be_bytes())
-        .collect();
+    let bytecode = assemble_from_file(&input_path).unwrap();
     fs::write(output_path, bytecode).expect("Failed to write output file");
+}
+
+fn assemble_from_file(path: &str) -> Result<Vec<u8>, AssembleError> {
+    let source = fs::read_to_string(path).map_err(|_| AssembleError::ReadError {
+        path: path.to_string(),
+    })?;
+    assemble(&source)
 }
 
 fn assemble(source: &str) -> Result<Vec<u8>, AssembleError> {
