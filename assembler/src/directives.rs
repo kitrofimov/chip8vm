@@ -29,7 +29,7 @@ pub fn fill(
 ) -> Result<Vec<u8>, AssembleError> {
     statement.assert_n_arguments(2)?;
     let n = statement.parse_number(0)?;
-    let byte = statement.parse_number(0)? as u8;
+    let byte = statement.parse_number(1)? as u8;
     Ok(vec![byte; n as usize])
 }
 
