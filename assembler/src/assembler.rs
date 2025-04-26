@@ -124,6 +124,10 @@ pub enum Error {
         line_number: usize,
         argument: u16,
         expected_n_bits: usize
+    },
+    InvalidArgumentIndex {
+        requested_index: usize,
+        n_arguments: usize
     }
 }
 
@@ -159,6 +163,13 @@ impl fmt::Display for Error {
                 format!(
                     "Argument overflow (instruction {}) at line {}: expected {} bits (max = {}), got {}", 
                     instruction, line_number, expected_n_bits, ((1u32 << 16) - 1) >> (16 - expected_n_bits), argument
+                )
+            },
+            Error::InvalidArgumentIndex { requested_index, n_arguments } => {
+                format!(
+                    "Invalid argument index {} requested; number of arguments: {}. If you see this, this \
+                    is probably an internal bug in the assembler itself. Please, submit a GitHub issue.",
+                    requested_index, n_arguments
                 )
             }
         };

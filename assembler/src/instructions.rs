@@ -83,7 +83,7 @@ pub fn ld(
     let x = statement.parse_register(0);
     let y = statement.parse_register(1);
 
-    match statement.argument(0) {
+    match statement.argument(0)? {
         "I"   => Ok(split_u16!(0xA000 | address?)),   // LD I, addr   0xAnnn
         "DT"  => Ok(split_u16!(0xF015 | (y? << 8))),  // LD DT, Vy    0xFy15
         "ST"  => Ok(split_u16!(0xF018 | (y? << 8))),  // LD ST, Vy    0xFy18
@@ -92,7 +92,7 @@ pub fn ld(
         "[I]" => Ok(split_u16!(0xF055 | (y? << 8))),  // LD [I], Vy   0xFy55
         _ => {
             let x = x?;
-            match statement.argument(1) {
+            match statement.argument(1)? {
                 "DT"  => Ok(split_u16!(0xF007 | (x << 8))),  // LD Vx, DT   0xFx07
                 "K"   => Ok(split_u16!(0xF00A | (x << 8))),  // LD Vx, K    0xFx0A
                 "[I]" => Ok(split_u16!(0xF065 | (x << 8))),  // LD Vx, [I]  0xFx65
@@ -109,7 +109,7 @@ pub fn ld(
 
 pub fn add(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     statement.assert_n_arguments(2)?;
-    if statement.argument(0) == "I" {
+    if statement.argument(0)? == "I" {
         let x = statement.parse_register(1)?;  // ADD I, Vx
         Ok(split_u16!(0xF01E | (x << 8)))      // 0xFx1E
     } else {

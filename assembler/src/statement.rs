@@ -20,8 +20,17 @@ impl Statement<'_> {
         self.lexemes.len() - 1
     }
 
-    pub fn argument(&self, argument_index: usize) -> &str {
-        self.lexemes[argument_index + 1]
+    pub fn argument_lexeme_index(&self, argument_index: usize) -> usize {
+        argument_index + 1
+    }
+
+    pub fn argument(&self, argument_index: usize) -> Result<&str, assembler::Error> {
+        self.lexemes.get(self.argument_lexeme_index(argument_index))
+            .ok_or(assembler::Error::InvalidArgumentIndex {
+                requested_index: argument_index,
+                n_arguments: self.n_arguments()
+            })
+            .map(|x| *x)  // Get rid of double reference
     }
 
     pub fn instruction(&self) -> &str {
@@ -31,7 +40,7 @@ impl Statement<'_> {
     pub fn parse_number(
         &self, argument_index: usize, max_n_bits: usize
     ) -> Result<u16, assembler::Error> {
-        let lexeme = self.argument(argument_index);
+        let lexeme = self.argument(argument_index)?;
         let num = if lexeme.starts_with("0x") {
             u16::from_str_radix(&lexeme[2..], 16)
         } else if lexeme.starts_with("0b") {
@@ -58,7 +67,7 @@ impl Statement<'_> {
     }
 
     pub fn parse_register(&self, argument_index: usize) -> Result<u16, assembler::Error> {
-        let lexeme = self.argument(argument_index);
+        let lexeme = self.argument(argument_index)?;
         let error = self.invalid_argument(argument_index);
         if lexeme.len() == 2 && lexeme.starts_with('V') {
             let register_char = lexeme.chars().nth(1).unwrap();
@@ -82,7 +91,7 @@ impl Statement<'_> {
         argument_index: usize,
         symbol_table: &SymbolTable
     ) -> Result<OpcodeAddress, assembler::Error> {
-        let lexeme = self.argument(argument_index);
+        let lexeme = self.argument(argument_index)?;
         symbol_table
             .get(lexeme)
             .copied()
@@ -101,13 +110,16 @@ impl Statement<'_> {
 
     // TODO: seems ugly. how do I not delete spaces and commas inside quotes?
     pub fn parse_string(&self, argument_index: usize) -> Result<String, assembler::Error> {
-        let lexeme = self.argument(argument_index);
+        let lexeme = self.argument(argument_index)?;
         if !lexeme.starts_with('"') {
             return Err(self.invalid_argument(argument_index));
         }
-        for i in argument_index..self.n_arguments() - 1 {
-            if self.argument(i).ends_with('"') {
-                return Ok(self.lexemes[argument_index..i].join(" ").trim_matches('"').to_string());
+        for i in argument_index + 1..self.n_arguments() {
+            if self.argument(i)?.ends_with('"') {
+                return Ok(
+                    self.lexemes[self.argument_lexeme_index(argument_index)..self.argument_lexeme_index(i) + 1]
+                        .join(" ").trim_matches('"').to_string()
+                );
             }
         };
         Err(self.invalid_argument(argument_index))
