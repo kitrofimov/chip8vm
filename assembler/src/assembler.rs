@@ -36,10 +36,8 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
             let label = line.trim_end_matches(':');
             labels.insert(label.to_string(), address);
         } else {
-            unresolved.push(Statement::new(
-                line.split_whitespace().map(|s| s.trim_matches(',')).collect(),
-                line_index + 1
-            ));
+            let lexemes: Vec<&str> = line.split_whitespace().map(|s| s.trim_matches(',')).collect();
+            unresolved.push(Statement::new(lexemes[0], lexemes[1..].to_vec(), line_index + 1));
             if line.starts_with(".") {  // Assembler directive
                 continue;  // TODO: need to know how many bytes it takes
             } else {

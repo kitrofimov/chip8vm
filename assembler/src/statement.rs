@@ -3,38 +3,39 @@ use crate::assembler::{OpcodeAddress, SymbolTable};
 
 #[derive(Debug, Clone)]
 pub struct Statement<'a> {
-    lexemes: Vec<&'a str>,
+    instruction: &'a str,
+    arguments: Vec<&'a str>,
     line_number: usize,
 }
 
-impl Statement<'_> {
-    pub fn new(lexemes: Vec<&str>, line_number: usize) -> Statement {
-        Statement { lexemes, line_number }
+impl<'a> Statement<'a> {
+    pub fn new(
+        instruction: &'a str,
+        arguments: Vec<&'a str>,
+        line_number: usize
+    ) -> Statement<'a> {
+        Statement { instruction, arguments, line_number }
+    }
+
+    pub fn instruction(&self) -> &str {
+        self.instruction
+    }
+
+    pub fn n_arguments(&self) -> usize {
+        self.arguments.len()
     }
 
     pub fn line_number(&self) -> usize {
         self.line_number
     }
 
-    pub fn n_arguments(&self) -> usize {
-        self.lexemes.len() - 1
-    }
-
-    pub fn argument_lexeme_index(&self, argument_index: usize) -> usize {
-        argument_index + 1
-    }
-
     pub fn argument(&self, argument_index: usize) -> Result<&str, assembler::Error> {
-        self.lexemes.get(self.argument_lexeme_index(argument_index))
+        self.arguments.get(argument_index)
             .ok_or(assembler::Error::InvalidArgumentIndex {
                 requested_index: argument_index,
-                n_arguments: self.n_arguments()
+                n_arguments: self.arguments.len()
             })
             .map(|x| *x)  // Get rid of double reference
-    }
-
-    pub fn instruction(&self) -> &str {
-        self.lexemes[0]
     }
 
     pub fn parse_number(
@@ -53,7 +54,7 @@ impl Statement<'_> {
                 let max: u16 = u16::MAX >> (16 - max_n_bits);
                 if num > max {
                     Err(assembler::Error::ArgumentOverflow {
-                        instruction: self.instruction().to_string(),
+                        instruction: self.instruction.to_string(),
                         line_number: self.line_number(),
                         argument: num,
                         expected_n_bits: max_n_bits
@@ -114,10 +115,10 @@ impl Statement<'_> {
         if !lexeme.starts_with('"') {
             return Err(self.invalid_argument(argument_index));
         }
-        for i in argument_index + 1..self.n_arguments() {
+        for i in argument_index + 1..self.arguments.len() {
             if self.argument(i)?.ends_with('"') {
                 return Ok(
-                    self.lexemes[self.argument_lexeme_index(argument_index)..self.argument_lexeme_index(i) + 1]
+                    self.arguments[argument_index..i + 1]
                         .join(" ").trim_matches('"').to_string()
                 );
             }
@@ -126,7 +127,7 @@ impl Statement<'_> {
     }
 
     pub fn assert_n_arguments(&self, n: usize) -> Result<(), assembler::Error> {
-        let n_arguments = self.n_arguments();
+        let n_arguments = self.arguments.len();
         if n_arguments != n {
             return Err(self.invalid_argument_count(n_arguments, vec![n]));
         }
@@ -135,7 +136,7 @@ impl Statement<'_> {
 
     pub fn invalid_argument(&self, argument_index: usize) -> assembler::Error {
         assembler::Error::InvalidArgument {
-            argument: self.lexemes[argument_index + 1].to_string(),
+            argument: self.arguments[argument_index].to_string(),
             line_number: self.line_number
         }
     }
@@ -146,7 +147,7 @@ impl Statement<'_> {
         expected: Vec<usize>  // e.g. 1 OR 2 arguments are expected (JP)
     ) -> assembler::Error {
         assembler::Error::InvalidArgumentCount {
-            instruction: self.instruction().to_string(),
+            instruction: self.instruction.to_string(),
             line_number: self.line_number,
             n_arguments,
             expected
