@@ -92,6 +92,7 @@ impl Statement<'_> {
             .or_else(|_| self.parse_label(argument_index, symbol_table))
     }
 
+    // TODO: seems ugly. how do I not delete spaces and commas inside quotes?
     fn parse_string(&self, argument_index: usize) -> Result<String, AssembleError> {
         let lexeme = self.argument(argument_index);
         if !lexeme.starts_with('"') {
@@ -244,12 +245,12 @@ fn second_pass(
     symbol_table: &SymbolTable, 
     unresolved: &Vec<Statement>
 ) -> Result<Vec<u8>, AssembleError> {
-    let mut opcodes = Vec::new();
+    let mut bytecode = Vec::new();
     for statement in unresolved {
-        let opcode = parse_statement(&statement, &symbol_table)?;
-        opcodes.push(opcode);
+        let bytes = parse_statement(&statement, &symbol_table)?;
+        bytecode.push(bytes);
     }
-    Ok(opcodes.into_iter().flatten().collect())
+    Ok(bytecode.into_iter().flatten().collect())
 }
 
 fn parse_statement(
