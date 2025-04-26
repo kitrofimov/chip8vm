@@ -109,21 +109,9 @@ impl<'a> Statement<'a> {
             .or_else(|_| self.parse_label(argument_index, symbol_table))
     }
 
-    // TODO: seems ugly. how do I not delete spaces and commas inside quotes?
     pub fn parse_string(&self, argument_index: usize) -> Result<String, assembler::Error> {
         let lexeme = self.argument(argument_index)?;
-        if !lexeme.starts_with('"') {
-            return Err(self.invalid_argument(argument_index));
-        }
-        for i in argument_index + 1..self.arguments.len() {
-            if self.argument(i)?.ends_with('"') {
-                return Ok(
-                    self.arguments[argument_index..i + 1]
-                        .join(" ").trim_matches('"').to_string()
-                );
-            }
-        };
-        Err(self.invalid_argument(argument_index))
+        Ok(lexeme.trim_matches('"').to_string())
     }
 
     pub fn assert_n_arguments(&self, n: usize) -> Result<(), assembler::Error> {
