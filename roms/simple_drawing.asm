@@ -11,8 +11,8 @@ JP loop
 .space 5
 .fill 3, 0xFF
 .space 5
-; .text "Hello, world!"
-; .space 5
+.text "Hello, world!"
+.space 5
 
 sprite:
 .byte 0b11110000

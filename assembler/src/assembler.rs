@@ -19,11 +19,11 @@ pub fn assemble_from_file(path: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn assemble(source: &str) -> Result<Vec<u8>, Error> {
-    let (symbol_table, unresolved) = first_pass(source);
+    let (symbol_table, unresolved) = first_pass(source)?;
     second_pass(&symbol_table, &unresolved)
 }
 
-fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
+fn first_pass(source: &str) -> Result<(SymbolTable, Vec<Statement>), Error> {
     let mut labels = HashMap::new();
     let mut unresolved = Vec::new();
     let mut address: OpcodeAddress = 0;
@@ -46,23 +46,30 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
                 spans.push(TokenSpan::new(mat.start(), mat.end()));
             }
 
-            unresolved.push(Statement::new(
+            let statement = Statement::new(
                 lexemes[0],
                 spans[0],
                 lexemes[1..].to_vec(),
                 spans[1..].to_vec(),
                 line_index + 1,
                 line
-            ));
-            if line.starts_with(".") {  // Assembler directive
-                continue;  // TODO: need to know how many bytes it takes
+            );
+
+            if line.starts_with(".") {
+                // Here we need to know the output size of the directive to not mess
+                // up the offsets. Essentially, we do double work here, but it would
+                // be a useless hassle to try to avoid it!
+                let n_bytes = parse_statement(&statement, &labels)?.len();
+                address += n_bytes as u16;
             } else {
                 address += BYTES_PER_INSTRUCTION;
             }
+
+            unresolved.push(statement);
         }
     }
 
-    (labels, unresolved)
+    Ok((labels, unresolved))
 }
 
 fn second_pass(
@@ -104,6 +111,7 @@ fn parse_statement(
         "SKP"  =>  skp(statement),
         "SKNP" => sknp(statement),
         // ASSEMBLER DIRECTIVES
+        // TODO: macros and conditionals?
         ".BYTE" | ".DB"    =>     byte(statement),
         ".WORD" | ".DW"    =>     word(statement),
         ".TEXT" | ".ASCII" =>     text(statement),
