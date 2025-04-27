@@ -159,7 +159,7 @@ impl<'a> Statement<'a> {
     pub fn assert_n_arguments(&self, n: usize) -> Result<(), assembler::Error> {
         let n_arguments = self.arguments.len();
         if n_arguments != n {
-            return Err(self.invalid_argument_count(n_arguments, vec![n]));
+            return Err(self.invalid_argument_count(n_arguments, &[n]));
         }
         Ok(())
     }
@@ -176,15 +176,21 @@ impl<'a> Statement<'a> {
     pub fn invalid_argument_count(
         &self,
         n_arguments: usize,
-        expected: Vec<usize>  // e.g. 1 OR 2 arguments are expected (JP)
+        expected: &[usize]
     ) -> assembler::Error {
+        let max_expected = *expected.iter().max().unwrap_or(&0);
+        let extra_argument_spans = self.argument_spans
+            .get(max_expected..)
+            .unwrap_or(&[])
+            .to_vec();
+    
         assembler::Error::InvalidArgumentCount {
             instruction: self.instruction.to_string(),
             n_arguments,
-            expected: expected.clone(),  // TODO: ugly omg
-            extra_argument_spans: self.argument_spans[*expected.iter().max().unwrap()..].to_vec(),
+            expected: expected.to_vec(),
+            extra_argument_spans,
             line_number: self.line_number,
-            line: self.line()
+            line: self.line(),
         }
     }
 }

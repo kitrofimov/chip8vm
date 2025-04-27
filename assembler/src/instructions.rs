@@ -37,7 +37,7 @@ pub fn jp(
             Ok(split_u16!(0xB000 | address))  // 0xBnnn
         }
         _ => Err(statement.invalid_argument_count(
-            statement.n_arguments(), vec![1, 2]
+            statement.n_arguments(), &[1, 2]
         ))
     }
 }
