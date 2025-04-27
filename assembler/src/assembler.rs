@@ -19,8 +19,18 @@ pub fn assemble_from_file(path: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn assemble(source: &str) -> Result<Vec<u8>, Error> {
-    let (symbol_table, unresolved) = first_pass(source)?;
+    let preprocessed = preprocess(source);
+    let (symbol_table, unresolved) = first_pass(&preprocessed)?;
     second_pass(&symbol_table, &unresolved)
+}
+
+fn preprocess(source: &str) -> String {
+    source
+        .lines()
+        .map(|line| line.splitn(2, ';').next().unwrap_or("").trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn first_pass(source: &str) -> Result<(SymbolTable, Vec<Statement>), Error> {
@@ -29,11 +39,6 @@ fn first_pass(source: &str) -> Result<(SymbolTable, Vec<Statement>), Error> {
     let mut address: OpcodeAddress = 0;
 
     for (line_index, line) in source.lines().enumerate() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with(';') {
-            continue;
-        }
-
         if line.ends_with(':') {
             let label = line.trim_end_matches(':');
             labels.insert(label.to_string(), address);
