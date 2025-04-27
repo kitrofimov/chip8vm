@@ -1,4 +1,5 @@
 use regex::Regex;
+use colored::Colorize;
 use std::{fmt, fs};
 use std::collections::HashMap;
 use crate::statement::{Statement, TokenSpan};
@@ -235,7 +236,7 @@ impl fmt::Display for Error {
             write!(f, "{}\t{}", line_number, line)?;
             if underlined_spans.len() != 0 {
                 writeln!(f, "")?;
-                write!(f, "\t{}", underline_spans(line, underlined_spans))?;
+                write!(f, "\t{}", underline_spans(line, underlined_spans).green())?;
             }
         }
         Ok(())
