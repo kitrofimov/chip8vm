@@ -16,18 +16,25 @@ fn main() {
     let input_path = &args[1];
     let output_path = &args[2];
 
-    let error = "error:".red().bold();
-
     let bytecode = assembler::assemble_from_file(&input_path)
         .unwrap_or_else(|e| {
-            eprintln!("{} {}", error, e.to_string());
+            error(e.to_string());
             std::process::exit(1);
         });
 
     fs::write(output_path, bytecode)
         .unwrap_or_else(|e| {
-            eprintln!("{} failed to write to output file: {}", error, output_path);
-            eprintln!("{}", e);
+            error(format!("failed to write to output file: {}", e.to_string()));
             std::process::exit(2);
         });
+}
+
+fn error(error_message: String) {
+    let error_title = "error:".red().bold();
+    eprintln!("{} {}", error_title, error_message);
+}
+
+fn warning(message: String, line_number: usize) {
+    let warning = "warning:".yellow().bold();
+    eprintln!("{} line {}: {}", warning, line_number, message);
 }

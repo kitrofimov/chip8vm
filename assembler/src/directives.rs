@@ -52,9 +52,7 @@ pub fn _include(
 pub fn warn(
     statement: &Statement,
 ) -> Result<Vec<u8>, assembler::Error> {
-    // TODO: reimplement this when I decide about logging
-    println!(
-        "WARNING: {}; line {}",
+    warning(
         statement.parse_string(0).unwrap_or("<no message>".to_string()),
         statement.line_number()
     );
