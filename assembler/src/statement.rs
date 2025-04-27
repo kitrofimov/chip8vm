@@ -76,7 +76,7 @@ impl<'a> Statement<'a> {
                 requested_index: argument_index,
                 n_arguments: self.arguments.len()
             })
-            .map(|x| *x)  // Get rid of double reference
+            .copied()
     }
 
     pub fn parse_number(
