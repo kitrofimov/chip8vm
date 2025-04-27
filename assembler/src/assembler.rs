@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::{fmt, fs};
 use std::collections::HashMap;
-use crate::statement::Statement;
+use crate::statement::{Statement, TokenSpan};
 use crate::instructions::*;
 use crate::directives::*;
 
@@ -38,10 +38,18 @@ fn first_pass(source: &str) -> (SymbolTable, Vec<Statement>) {
             labels.insert(label.to_string(), address);
         } else {
             let re = Regex::new(r#""[^"]*"|[^,\s]+"#).unwrap();
-            let lexemes: Vec<&str> = re.find_iter(line).map(|mat| mat.as_str()).collect();
+            let mut lexemes = Vec::new();
+            let mut spans = Vec::new();
+            for mat in re.find_iter(line) {
+                lexemes.push(mat.as_str());
+                spans.push(TokenSpan::new(mat.start(), mat.end()));
+            }
+
             unresolved.push(Statement::new(
                 lexemes[0],
+                spans[0],
                 lexemes[1..].to_vec(),
+                spans[1..].to_vec(),
                 line_index + 1,
                 line
             ));
@@ -105,6 +113,7 @@ fn parse_statement(
         ".ERROR"           =>   _error(statement),
         _ => Err(Error::UnknownInstruction {
             instruction: statement.instruction().to_string(),
+            instruction_span: statement.instruction_span(),
             line_number: statement.line_number(),
             line: statement.line()
         })
@@ -116,11 +125,13 @@ fn parse_statement(
 pub enum Error {
     UnknownInstruction {
         instruction: String,
+        instruction_span: TokenSpan,
         line_number: usize,
         line: String
     },
     InvalidArgument {
         argument: String,
+        argument_span: TokenSpan,
         line_number: usize,
         line: String
     },
@@ -128,6 +139,7 @@ pub enum Error {
         instruction: String,
         n_arguments: usize,
         expected: Vec<usize>,
+        extra_argument_spans: Vec<TokenSpan>,
         line_number: usize,
         line: String
     },
@@ -147,6 +159,7 @@ pub enum Error {
     },
     ArgumentOverflow {
         argument: u16,
+        argument_span: TokenSpan,
         expected_n_bits: usize,
         line_number: usize,
         line: String
@@ -159,42 +172,54 @@ pub enum Error {
 
 impl std::error::Error for Error {}
 
+fn underline_spans(line: &str, spans: Vec<&TokenSpan>) -> String {
+    let mut underline = vec![' '; line.len()];
+    for span in spans {
+        for i in span.start()..span.end() {
+            if i < underline.len() {
+                underline[i] = '^';
+            }
+        }
+    }
+    underline.into_iter().collect()
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (message, line, line_number) = match self {
-            Error::UnknownInstruction { instruction, line_number, line } => (
+        let (message, line, line_number, underlined_spans) = match self {
+            Error::UnknownInstruction { instruction, instruction_span, line_number, line } => (
                 format!("unknown instruction \"{}\" at line {}", instruction, line_number),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), vec![instruction_span]
             ),
-            Error::InvalidArgument { argument, line_number, line } => (
+            Error::InvalidArgument { argument, argument_span, line_number, line } => (
                 format!("invalid argument \"{}\" at line {}", argument, line_number),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), vec![argument_span]
             ),
-            Error::InvalidArgumentCount {instruction, line_number, n_arguments, expected, line} => (
+            Error::InvalidArgumentCount {instruction, line_number, n_arguments, expected, extra_argument_spans, line} => (
                 format!(
                     "invalid argument count for instruction \"{}\" at line {}: found {}, expected {:?}",
                     instruction, line_number, n_arguments, expected
                 ),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), extra_argument_spans.iter().collect()
             ),
             Error::UserError { message, line_number, line } => (
                 format!("line {}: {}", line_number, message),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), vec![]
             ),
             Error::ReadError { path } => (
                 format!("failed to read file {}", path),
-                None, None
+                None, None, vec![]
             ),
             Error::IncludeError { path, line_number, error, line } => (
                 format!("in file {} included at line {}: {}", path, line_number, error),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), vec![]
             ),
-            Error::ArgumentOverflow { line_number, argument, expected_n_bits, line } => (
+            Error::ArgumentOverflow { line_number, argument, argument_span, expected_n_bits, line } => (
                 format!(
                     "argument overflow at line {}: maximum allowed value {} (to fit in {} bits), got {}", 
                     line_number, ((1u32 << 16) - 1) >> (16 - expected_n_bits), expected_n_bits, argument
                 ),
-                Some(line), Some(line_number)
+                Some(line), Some(line_number), vec![argument_span]
             ),
             Error::InvalidArgumentIndex { requested_index, n_arguments } => (
                 format!(
@@ -202,12 +227,16 @@ impl fmt::Display for Error {
                     is probably an internal bug in the assembler itself. Please, submit a GitHub issue.",
                     requested_index, n_arguments
                 ),
-                None, None
+                None, None, vec![]
             )
         };
         writeln!(f, "{}", message)?;
         if let (Some(line), Some(line_number)) = (line, line_number) {
             write!(f, "{}\t{}", line_number, line)?;
+            if underlined_spans.len() != 0 {
+                writeln!(f, "")?;
+                write!(f, "\t{}", underline_spans(line, underlined_spans))?;
+            }
         }
         Ok(())
     }

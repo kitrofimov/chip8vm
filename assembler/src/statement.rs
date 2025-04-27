@@ -1,10 +1,32 @@
 use crate::*;
 use crate::assembler::{OpcodeAddress, SymbolTable};
 
+#[derive(Debug, Clone, Copy)]
+pub struct TokenSpan {
+    start: usize,
+    end: usize,
+}
+
+impl TokenSpan {
+    pub fn new(start: usize, end: usize) -> TokenSpan {
+        TokenSpan { start, end }
+    }
+
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    pub fn end(&self) -> usize {
+        self.end
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Statement<'a> {
     instruction: &'a str,
+    instruction_span: TokenSpan,
     arguments: Vec<&'a str>,
+    argument_spans: Vec<TokenSpan>,
     line_number: usize,
     line: &'a str
 }
@@ -12,13 +34,17 @@ pub struct Statement<'a> {
 impl<'a> Statement<'a> {
     pub fn new(
         instruction: &'a str,
+        instruction_span: TokenSpan,
         arguments: Vec<&'a str>,
+        argument_spans: Vec<TokenSpan>,
         line_number: usize,
         line: &'a str
     ) -> Statement<'a> {
         Statement {
             instruction,
+            instruction_span,
             arguments,
+            argument_spans,
             line_number,
             line
         }
@@ -26,6 +52,10 @@ impl<'a> Statement<'a> {
 
     pub fn instruction(&self) -> &str {
         self.instruction
+    }
+
+    pub fn instruction_span(&self) -> TokenSpan {
+        self.instruction_span
     }
 
     pub fn n_arguments(&self) -> usize {
@@ -66,6 +96,7 @@ impl<'a> Statement<'a> {
                 if num > max {
                     Err(assembler::Error::ArgumentOverflow {
                         argument: num,
+                        argument_span: self.argument_spans[argument_index],
                         expected_n_bits: max_n_bits,
                         line_number: self.line_number(),
                         line: self.line()
@@ -136,6 +167,7 @@ impl<'a> Statement<'a> {
     pub fn invalid_argument(&self, argument_index: usize) -> assembler::Error {
         assembler::Error::InvalidArgument {
             argument: self.arguments[argument_index].to_string(),
+            argument_span: self.argument_spans[argument_index],
             line_number: self.line_number,
             line: self.line()
         }
@@ -149,7 +181,8 @@ impl<'a> Statement<'a> {
         assembler::Error::InvalidArgumentCount {
             instruction: self.instruction.to_string(),
             n_arguments,
-            expected,
+            expected: expected.clone(),  // TODO: ugly omg
+            extra_argument_spans: self.argument_spans[*expected.iter().max().unwrap()..].to_vec(),
             line_number: self.line_number,
             line: self.line()
         }
