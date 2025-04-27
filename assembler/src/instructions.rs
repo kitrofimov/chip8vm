@@ -115,7 +115,7 @@ pub fn add(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {
     } else {
         let x = statement.parse_register(0)?;
         statement
-            .parse_number(1, 8)                                   // ADD Vx, byte
+            .parse_number(1, 8)                                // ADD Vx, byte
             .map(|byte| split_u16!(0x7000 | (x << 8) | byte))  // 0x7xkk
             .or_else(|_| {
                 let y = statement.parse_register(1)?;         // ADD Vx, Vy
