@@ -10,6 +10,8 @@ pub type OpcodeAddress = u16;
 pub type SymbolTable = HashMap<String, OpcodeAddress>;
 
 const BYTES_PER_INSTRUCTION: u16 = 2;
+const REGEX_LEXING: &str = r#""[^"]*"|[^,\s]+"#;
+const REGEX_MACRO: &str = r"(?s)\.macro\s+(?P<name>\w+)\s+(?P<args>[^\n]+)\s*\n(?P<body>.*?)\n\.endmacro";
 
 pub fn assemble_from_file(path: &str) -> Result<Vec<u8>, Error> {
     let source = fs::read_to_string(path).map_err(|_| Error::ReadError {
@@ -19,26 +21,94 @@ pub fn assemble_from_file(path: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub fn assemble(source: &str) -> Result<Vec<u8>, Error> {
-    let (symbol_table, unresolved) = first_pass(source)?;
+    let preprocessed = preprocess(source)?;
+    let (symbol_table, unresolved) = first_pass(&preprocessed)?;
     second_pass(&symbol_table, &unresolved)
 }
 
-fn first_pass(source: &str) -> Result<(SymbolTable, Vec<Statement>), Error> {
+#[derive(Debug)]
+struct Macro {
+    name: String,
+    args: Vec<String>,
+    body: String,
+}
+
+fn preprocess(source: &str) -> Result<String, Error> {
+    let mut preprocessed = source
+        .lines()
+        .map(|line| line.splitn(2, ';').next().unwrap_or("").trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let macro_re = Regex::new(REGEX_MACRO).unwrap();
+    let mut macros = Vec::<Macro>::new();
+    for cap in macro_re.captures_iter(&preprocessed) {
+        let name = cap["name"].to_string();
+        let args: Vec<String> = cap["args"].split_whitespace().map(|s| s.to_string()).collect();
+        let body = cap["body"].to_string();
+
+        macros.push(Macro { name, args, body });
+    }
+    preprocessed = macro_re.replace_all(&preprocessed, "").to_string();
+
+    for Macro { name, args: definition_args, body } in macros {
+        let macro_usage_re = Regex::new(&format!(r"{}\s+(?P<args>[^\n]+)", name)).unwrap();
+        let mut error = None;
+        preprocessed = macro_usage_re.replace_all(&preprocessed, |caps: &regex::Captures| {
+            let lexing_re = Regex::new(REGEX_LEXING).unwrap();
+            let args = lexing_re.captures_iter(&caps["args"]).map(|cap| cap[0].to_string()).collect::<Vec<_>>();
+
+            // This is the definition of the macro, not a usage
+            if args == definition_args {
+                return body.clone();
+            }
+
+            if args.len() != definition_args.len() {
+                error = Some(Error::InvalidArgumentCount {
+                    instruction: name.clone(),
+                    n_arguments: args.len(),
+                    expected: vec![definition_args.len()],
+                    extra_argument_spans: vec![],  // TODO ?
+                    line_number: 0,  // TODO ?
+                    line: "".to_string()  // TODO ?
+                });
+            }
+
+            let mut modified_body = body.clone();
+            for i in 0..args.len() {
+                let placeholder = format!("${}", definition_args[i]);
+                modified_body = modified_body.replace(&placeholder, &args[i]);
+            }
+
+            modified_body
+        }).to_string();
+
+        if let Some(err) = error {
+            return Err(err);
+        }
+    }
+
+    preprocessed = preprocessed
+        .lines()
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Ok(preprocessed)
+}
+
+fn first_pass(preprocessed: &str) -> Result<(SymbolTable, Vec<Statement>), Error> {
     let mut labels = HashMap::new();
     let mut unresolved = Vec::new();
     let mut address: OpcodeAddress = 0;
 
-    for (line_index, line) in source.lines().enumerate() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with(';') {
-            continue;
-        }
-
+    for (line_index, line) in preprocessed.lines().enumerate() {
         if line.ends_with(':') {
             let label = line.trim_end_matches(':');
             labels.insert(label.to_string(), address);
         } else {
-            let re = Regex::new(r#""[^"]*"|[^,\s]+"#).unwrap();
+            let re = Regex::new(REGEX_LEXING).unwrap();
             let mut lexemes = Vec::new();
             let mut spans = Vec::new();
             for mat in re.find_iter(line) {
@@ -111,7 +181,6 @@ fn parse_statement(
         "SKP"  =>  skp(statement),
         "SKNP" => sknp(statement),
         // ASSEMBLER DIRECTIVES
-        // TODO: macros and conditionals?
         ".BYTE" | ".DB"    =>     byte(statement),
         ".WORD" | ".DW"    =>     word(statement),
         ".TEXT" | ".ASCII" =>     text(statement),
@@ -206,7 +275,7 @@ impl fmt::Display for Error {
             ),
             Error::InvalidArgumentCount {instruction, line_number, n_arguments, expected, extra_argument_spans, line} => (
                 format!(
-                    "invalid argument count for instruction \"{}\" at line {}: found {}, expected {:?}",
+                    "invalid argument count for \"{}\" at line {}: found {}, expected {:?}",
                     instruction, line_number, n_arguments, expected
                 ),
                 Some(line), Some(line_number), extra_argument_spans.iter().collect()
