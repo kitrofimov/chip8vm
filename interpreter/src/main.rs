@@ -11,7 +11,7 @@ pub const WINDOW_HEIGHT: usize = 320;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        eprintln!("Usage: {} <path_to_rom>", args[0]);
+        eprintln!("Usage: {} <rom.ch8>", args[0]);
         std::process::exit(1);
     }
 

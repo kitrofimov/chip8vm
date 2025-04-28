@@ -1,17 +1,19 @@
-# CHIP-8 Interpreter
+# CHIP-8 Toolsuite
 
-A quite basic (yet) CHIP-8 interpreter.
+- Interpreter:
+    - full support for CHIP-8 instructions
+    - graphical rendering using SDL2
+- Assembler:
+    - consistent & well-defined syntax
+    - user-friendly error messages
+    - all instructions & useful directives
+- Disassembler
 
 ## TODO
-- [ ] Implement disassembler
 - [ ] Multiple versions of CHIP-8 (quirks?)
 - [ ] Maybe, an IDE for this thing? Something like [this](https://internet-janitor.itch.io/octo) or [this](https://github.com/gulrak/cadmium)?
 - [ ] [This](https://github.com/glouw/c8c) looks like fun
 - [ ] POLISH everything: documentation & etc.
-
-## Features
-- Full support for CHIP-8 instructions
-- Graphical rendering using SDL2
 
 ## Building
 ### Requirements
@@ -33,7 +35,9 @@ A quite basic (yet) CHIP-8 interpreter.
 
 ## Usage
 ```bash
-chip8vm <path_to_rom>
+interpreter <rom.ch8>
+assembler <input.asm> <output.ch8>
+disassembler <input.ch8> <output.asm>
 ```
 
 ## Key Mapping
