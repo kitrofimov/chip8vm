@@ -3,13 +3,11 @@
 A quite basic (yet) CHIP-8 interpreter.
 
 ## TODO
-- [ ] Remove all dependencies of `VM` upon `SDL2` (maximum portability)
-- [ ] Implement:
-    - [ ] Assembler
-    - [ ] Disassembler
+- [ ] Implement disassembler
 - [ ] Multiple versions of CHIP-8 (quirks?)
 - [ ] Maybe, an IDE for this thing? Something like [this](https://internet-janitor.itch.io/octo) or [this](https://github.com/gulrak/cadmium)?
 - [ ] [This](https://github.com/glouw/c8c) looks like fun
+- [ ] POLISH everything: documentation & etc.
 
 ## Features
 - Full support for CHIP-8 instructions
