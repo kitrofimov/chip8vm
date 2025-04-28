@@ -3,13 +3,11 @@
 A quite basic (yet) CHIP-8 interpreter.
 
 ## TODO
-- [ ] Remove all dependencies of `VM` upon `SDL2` (maximum portability)
-- [ ] Implement:
-    - [ ] Assembler
-    - [ ] Disassembler
+- [ ] Implement disassembler
 - [ ] Multiple versions of CHIP-8 (quirks?)
 - [ ] Maybe, an IDE for this thing? Something like [this](https://internet-janitor.itch.io/octo) or [this](https://github.com/gulrak/cadmium)?
 - [ ] [This](https://github.com/glouw/c8c) looks like fun
+- [ ] POLISH everything: documentation & etc.
 
 ## Features
 - Full support for CHIP-8 instructions
@@ -51,3 +49,4 @@ CHIP-8:  1 2 3 C       Keyboard:  1 2 3 4
 - `Timendus` for his wonderful [ROM test suite](https://github.com/Timendus/chip8-test-suite)
 - `gulrak` for the super-helpful [opcode table](https://chip8.gulrak.net/)
 - `mittmikolay` and `tobiasvl` for their technical references ([this](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference) and [this](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/))
+- `Cowgod` for assembler syntax [reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
