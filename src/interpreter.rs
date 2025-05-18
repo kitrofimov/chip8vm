@@ -174,9 +174,7 @@ impl<'a> VM<'a> {
                 continue;
             }
 
-            print!("PC: 0x{:X} ", self.pc);
             let fetched = self.fetch();
-            println!("OPCODE: 0x{:X}", fetched);
             self.execute(fetched);
 
             let elapsed = cycle_start.elapsed();
