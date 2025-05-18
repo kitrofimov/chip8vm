@@ -1,0 +1,8 @@
+[package]
+name = "ide"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.31.1"
+egui_dock = "0.16.0"
