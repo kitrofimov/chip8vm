@@ -1,3 +1,7 @@
+![banner](.github/banner.png)
+
+![demo](.github/demo.mp4)
+
 # CHIP-8 Toolsuite
 
 - Interpreter:
