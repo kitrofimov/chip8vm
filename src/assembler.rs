@@ -14,7 +14,7 @@
 //! are case-sensitive, while instructions and directives are not. Labels are
 //! defined with a colon at the end of the line, for example:
 //! 
-//! ```
+//! ```ignore
 //! label:
 //!     LD V0, 0  ; set V0 to 0
 //!     loop:
