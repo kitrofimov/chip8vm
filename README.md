@@ -2,6 +2,14 @@
 
 ![demo](.github/demo.gif)
 
+<div align="center">
+
+![build_status](https://img.shields.io/github/actions/workflow/status/kitrofimov/chip8vm/rust.yml)
+![license_mit](https://img.shields.io/badge/License-MIT-blue.svg)
+![language_rust](https://img.shields.io/badge/language-rust-B7410E)
+
+</div>
+
 # CHIP-8 Toolchain
 
 - Interpreter:
