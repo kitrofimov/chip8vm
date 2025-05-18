@@ -1,3 +1,8 @@
+; Generates a random 8x15 sprite every 60 ticks (1 second)
+; and draws it to the screen in a looping fashion
+; V0 = x coordinate
+; V1 = y coordinate
+
 CLS
 mainloop:
     CALL new_sprite
@@ -7,6 +12,7 @@ mainloop:
     CALL wait_dt
     JP mainloop
 
+; Draw the sprite to a screen column
 draw_column:
     LD V1, 0
     draw_column_loop:
@@ -16,6 +22,7 @@ draw_column:
         JP draw_column_loop
     RET
 
+; Draw the sprite to the screen
 draw_screen:
     LD V0, 0
     draw_screen_loop:
@@ -25,6 +32,7 @@ draw_screen:
         JP draw_screen_loop
     RET
 
+; Generate a new sprite and set I to it
 new_sprite:
     LD I, registers
     LD [I], VF
@@ -51,12 +59,14 @@ new_sprite:
     LD I, sprite
     RET
 
+; Wait until DT is 0
 wait_dt:
     LD V1, DT
     SE V1, 0
     JP wait_dt
     RET
 
+; Reserve space for the dynamic sprite and temp registers
 sprite:
 .space 16
 
