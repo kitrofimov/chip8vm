@@ -1,8 +1,8 @@
 ![banner](.github/banner.png)
 
-![demo](.github/demo.mp4)
+![demo](.github/demo.gif)
 
-# CHIP-8 Toolsuite
+# CHIP-8 Toolchain
 
 - Interpreter:
     - full support for original CHIP-8 instructions (no "quirks"!)
