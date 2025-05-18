@@ -1,3 +1,9 @@
+//! A CHIP-8 interpreter
+//! 
+//! This module implements a CHIP-8 interpreter, which is a virtual machine
+//! that can run CHIP-8 programs. It uses the SDL2 library for graphics and
+//! audio handling.
+
 use std::time::{Duration, Instant};
 use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::pixels::Color;
@@ -8,7 +14,9 @@ use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::{AudioSubsystem, EventPump};
 
+/// The width of the display in pixels
 pub const DISPLAY_WIDTH: usize = 64;
+/// The height of the display in pixel
 pub const DISPLAY_HEIGHT: usize = 32;
 
 const VM_FREQUENCY: u32 = 500;
@@ -39,6 +47,7 @@ impl AudioCallback for SquareWave {
     }
 }
 
+/// Stucture representing the state of the virtual machine
 pub struct VM<'a> {
     running: bool,
     ram: [u8; 4096],
@@ -58,6 +67,7 @@ pub struct VM<'a> {
 }
 
 impl<'a> VM<'a> {
+    /// Create a new virtual machine
     pub fn new(
         canvas: Canvas<Window>,
         texture: Texture,
@@ -118,10 +128,12 @@ impl<'a> VM<'a> {
         vm
     }
 
+    /// Load a program into the virtual machine
     pub fn load_program(&mut self, program: &[u8]) {
         self.ram[0x200..0x200 + program.len()].copy_from_slice(program);
     }
 
+    /// Start the main loop of the virtual machine
     pub fn mainloop(&mut self) {
         let mut last_timer_update = Instant::now();
         let cycle_duration = Duration::from_secs_f64(1.0 / (VM_FREQUENCY as f64));

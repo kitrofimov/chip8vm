@@ -1,3 +1,5 @@
+//! Code generation functions for instructions
+
 use super::statement::Statement;
 use crate::assembler;
 use crate::assembler::SymbolTable;

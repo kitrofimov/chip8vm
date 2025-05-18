@@ -1,3 +1,5 @@
+//! Code generation functions for directives
+
 use super::statement::Statement;
 use crate::assembler;
 use crate::split_u16;

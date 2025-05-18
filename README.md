@@ -1,15 +1,17 @@
 # CHIP-8 Toolsuite
 
 - Interpreter:
-    - full support for CHIP-8 instructions
+    - full support for original CHIP-8 instructions (no "quirks"!)
     - graphical rendering using SDL2
 - Assembler:
     - consistent & well-defined syntax
     - user-friendly error messages
     - all instructions & useful directives
-- Disassembler
+- Disassembler:
+    - translates bytecode to assembler instructions
+    - makes it easier to decode ROMs 
 
-## TODO
+## TODO (if I ever want to take on this project again)
 - [ ] Multiple versions of CHIP-8 (quirks?)
 - [ ] Maybe, an IDE for this thing? Something like [this](https://internet-janitor.itch.io/octo) or [this](https://github.com/gulrak/cadmium)?
 - [ ] [This](https://github.com/glouw/c8c) looks like fun
@@ -51,6 +53,6 @@ CHIP-8:  1 2 3 C       Keyboard:  1 2 3 4
 
 ## Acknowledgments
 - `Timendus` for his wonderful [ROM test suite](https://github.com/Timendus/chip8-test-suite)
-- `gulrak` for the super-helpful [opcode table](https://chip8.gulrak.net/)
+- `gulrak` for the [opcode table](https://chip8.gulrak.net/)
 - `mittmikolay` and `tobiasvl` for their technical references ([this](https://github.com/mattmikolay/chip-8/wiki/CHIP%E2%80%908-Technical-Reference) and [this](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/))
 - `Cowgod` for assembler syntax [reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
