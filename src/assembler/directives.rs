@@ -1,5 +1,7 @@
-use crate::*;
-use crate::statement::*;
+use super::statement::Statement;
+use crate::assembler;
+use crate::split_u16;
+use crate::logging::warning;
 
 pub fn byte(
     statement: &Statement,

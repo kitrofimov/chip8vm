@@ -1,5 +1,5 @@
 use std::{env, fs};
-use colored::Colorize;
+use chip8vm::logging::error;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -101,9 +101,4 @@ fn decode_instruction(opcode: u16) -> String {
         (0xF, _, 0x6, 0x5)   => format!("LD V{:X}, [I]",        x),
         _ => format!(".word 0x{:04X}", opcode),
     }
-}
-
-fn error(error_message: String) {
-    let error_title = "error:".red().bold();
-    eprintln!("{} {}", error_title, error_message);
 }

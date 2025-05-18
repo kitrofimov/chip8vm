@@ -1,9 +1,7 @@
-mod vm;
-
 use std::fs::File;
 use std::io::Read;
 use sdl2::pixels::PixelFormatEnum;
-use vm::{VM, DISPLAY_WIDTH, DISPLAY_HEIGHT};
+use chip8vm::interpreter::{VM, DISPLAY_WIDTH, DISPLAY_HEIGHT};
 
 pub const WINDOW_WIDTH: usize = 640;
 pub const WINDOW_HEIGHT: usize = 320;

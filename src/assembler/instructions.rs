@@ -1,6 +1,6 @@
-use crate::statement::Statement;
-use crate::assembler::SymbolTable;
+use super::statement::Statement;
 use crate::assembler;
+use crate::assembler::SymbolTable;
 use crate::split_u16;
 
 pub fn cls(statement: &Statement) -> Result<Vec<u8>, assembler::Error> {

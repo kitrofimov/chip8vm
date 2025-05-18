@@ -1,10 +1,15 @@
+pub mod codegen_utils;
+pub mod directives;
+pub mod instructions;
+pub mod statement; 
+
 use regex::Regex;
 use colored::Colorize;
 use std::{fmt, fs};
 use std::collections::HashMap;
-use crate::statement::{Statement, TokenSpan};
-use crate::instructions::*;
-use crate::directives::*;
+use statement::{Statement, TokenSpan};
+use instructions::*;
+use directives::*;
 
 pub type OpcodeAddress = u16;
 pub type SymbolTable = HashMap<String, OpcodeAddress>;
